@@ -1,5 +1,7 @@
 import os
+import time
 from google import genai
+from google.genai.errors import ServerError
 
 api_key = os.environ.get("GEMINI_API_KEY")
 
@@ -34,11 +36,39 @@ Clearly say when information is unavailable.
 The goal is to help the Trending Finds brand discover products for affiliate marketing.
 """
 
-response = client.models.generate_content(
-    model="gemini-3.8-flash",
-    contents=prompt,
-)
+models = [
+    "gemini-3.8-flash",
+    "gemini-3.7-flash",
+    "gemini-3.6-flash"
+]
 
-print("\n===== TREND HUNTER AI =====\n")
-print(response.text)
-print("\n===== END =====")
+last_error = None
+
+for model in models:
+    for attempt in range(3):
+        try:
+            print(f"Trying {model} - attempt {attempt + 1}")
+
+            response = client.models.generate_content(
+                model=model,
+                contents=prompt,
+            )
+
+            print("\n===== TREND HUNTER AI =====\n")
+            print(response.text)
+            print("\n===== END =====")
+
+            raise SystemExit(0)
+
+        except ServerError as error:
+            last_error = error
+            print(f"Temporary Gemini server error: {error}")
+
+            if attempt < 2:
+                wait_time = 5 * (2 ** attempt)
+                print(f"Waiting {wait_time} seconds...")
+                time.sleep(wait_time)
+
+print("\nTrend Hunter AI could not connect to Gemini.")
+print("Last error:", last_error)
+raise SystemExit(1)
