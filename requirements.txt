@@ -1,2 +1,5 @@
+
 google-genai
 uvicorn
+fastapi
+pydantic
