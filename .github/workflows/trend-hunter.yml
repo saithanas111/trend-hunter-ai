@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: "0 */6 * * *"
 
+permissions:
+  contents: write
+
 jobs:
   run-trend-hunter:
     runs-on: ubuntu-latest
@@ -25,10 +28,24 @@ jobs:
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
-      - name: Save report artifact
+
+      - name: Save dated report
+        run: |
+          mkdir -p reports
+          cp trend_report.md "reports/$(date -u +%Y-%m-%d-%H-%M).md"
+
+      - name: Commit report history
+        run: |
+          git config user.name "Trend Hunter AI"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reports/
+          git diff --cached --quiet || git commit -m "Save Trend Hunter report history"
+          git push
+
+      - name: Upload latest report
         uses: actions/upload-artifact@v4
         with:
           name: trend-hunter-report
           path: trend_report.md
           if-no-files-found: error
-          
+          retention-days: 90
