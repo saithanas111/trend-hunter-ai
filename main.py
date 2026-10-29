@@ -55,7 +55,7 @@ LIVE TREND INPUT (Google Trends Pakistan RSS):
 DATA STATUS:
 {trend_status}
 
-Create a useful report with 5 product opportunities that could be tested on Daraz Pakistan.
+Create a useful report with 10 product/content opportunities that could be tested on Daraz Pakistan, aiming to give the owner enough material to prepare 10-20 posts per day without repeating the same angle.
 Use the live topics only when there is a sensible connection to a product. Do not force irrelevant trends.
 If no relevant trend-to-product connection exists, label the product suggestion as an evergreen hypothesis.
 
@@ -69,7 +69,7 @@ For each opportunity provide:
 7. A product verification checklist: seller reliability, current price, reviews, sold count if shown, stock, shipping, return policy, and affiliate eligibility.
 8. Affiliate URL: write "ADD VERIFIED DARAZ AFFILIATE LINK" because no verified link was supplied.
 
-Then include: best first test, a one-day posting plan, three engagement experiments, and a simple tracking table template for clicks, messages, orders and commissions.
+Then include: best first test and why; a suggested schedule for 10-20 daily posts across platforms without spam; three engagement experiments; a reusable tracking table template for clicks, messages, orders and commissions; and a short list of what is still unverified. Do not suggest publishing the identical post repeatedly.
 
 Rules:
 - Never invent Daraz listings, prices, ratings, sold counts, commission rates, URLs, views, orders, or earnings.
