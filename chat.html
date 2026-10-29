@@ -1,9 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10131b">
 <title>Trend Hunter AI</title>
 <style>
 *{box-sizing:border-box}
@@ -11,54 +11,70 @@ body{margin:0;font-family:Arial,sans-serif;background:#10131b;color:#f4f6fb}
 header{padding:18px;background:#191f2c;border-bottom:1px solid #30384a}
 h2{margin:0 0 6px;color:#8ab4ff}
 header p{margin:0;color:#b6c0d2;font-size:13px}
-#chat{max-width:700px;margin:auto;padding:16px;height:68vh;overflow-y:auto}
-.msg{padding:12px 14px;margin:10px 0;border-radius:14px;line-height:1.5;white-space:pre-wrap;overflow-wrap:anywhere}
-.bot{background:#222b3a;margin-right:30px}
-.user{background:#244d87;margin-left:30px}
-#status{color:#aab5c8;font-size:12px;padding:0 16px}
+#chat{max-width:760px;margin:auto;padding:16px;height:calc(100dvh - 160px);overflow-y:auto}
+.msg{padding:12px 14px;margin:10px 0;border-radius:14px;line-height:1.55;white-space:pre-wrap;overflow-wrap:anywhere}
+.bot{background:#222b3a;margin-right:24px}
+.user{background:#244d87;margin-left:24px}
+#status{color:#aab5c8;font-size:12px;padding:0 16px 8px;max-width:760px;margin:auto}
 form{position:fixed;bottom:0;left:0;right:0;background:#191f2c;padding:12px;display:flex;gap:8px}
 input{min-width:0;flex:1;padding:14px;border:1px solid #45516a;border-radius:12px;background:#10131b;color:white;font-size:16px}
 button{border:0;border-radius:12px;padding:12px 16px;background:#477de0;color:white;font-weight:bold}
-small{color:#aab5c8}
+button:disabled{opacity:.6}
 </style>
 </head>
 <body>
-<header>
-<h2>Trend Hunter AI</h2>
-<p>Your business assistant · Trending Finds</p>
-</header>
+<header><h2>Trend Hunter AI</h2><p>Your business assistant · Trending Finds</p></header>
 <div id="chat" aria-live="polite">
 <div class="msg bot">Assalam-o-Alaikum, Boss! 👋
 
-Main Trend Hunter AI hoon. Aap mujhe apne business goals, product research aur marketing ke tasks bata sakte hain.
+Main Trend Hunter AI hoon. Aap product research, affiliate marketing, content aur business planning ke tasks pooch sakte hain.
 
-Abhi chat interface tayyar ho raha hai. AI replies aur automatic actions aglay setup mein connect honge.</div>
+Note: AI chat kaam karne ke liye app ko server par deploy karna aur GEMINI_API_KEY ko private environment variable mein set karna zaroori hai.</div>
 </div>
-<div id="status">Chat interface ready · AI backend not connected yet</div>
+<div id="status">Ready · AI response will appear here</div>
 <form id="form">
-<input id="message" placeholder="Boss, apna task likhein..." autocomplete="off" required>
-<button type="submit">Send</button>
+<input id="message" placeholder="Boss, apna task likhein..." autocomplete="off" maxlength="4000" required>
+<button id="send" type="submit">Send</button>
 </form>
 <script>
 const form=document.getElementById('form');
 const input=document.getElementById('message');
 const chat=document.getElementById('chat');
-form.addEventListener('submit',function(e){
-e.preventDefault();
-const value=input.value.trim();
-if(!value)return;
-const bubble=document.createElement('div');
-bubble.className='msg user';
-bubble.textContent=value;
-chat.appendChild(bubble);
-input.value='';
-const reply=document.createElement('div');
-reply.className='msg bot';
-reply.textContent='Boss, aapka message chat screen par aa gaya hai. AI ko jawab dene ke liye aglay step mein secure backend connect karna hoga.';
-chat.appendChild(reply);
-chat.scrollTop=chat.scrollHeight;
+const status=document.getElementById('status');
+const send=document.getElementById('send');
+function bubble(text,kind){
+  const el=document.createElement('div');
+  el.className='msg '+kind;
+  el.textContent=text;
+  chat.appendChild(el);
+  chat.scrollTop=chat.scrollHeight;
+}
+form.addEventListener('submit',async function(e){
+  e.preventDefault();
+  const message=input.value.trim();
+  if(!message)return;
+  bubble(message,'user');
+  input.value='';
+  send.disabled=true;
+  status.textContent='Trend Hunter is thinking…';
+  try{
+    const response=await fetch('/chat',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message})
+    });
+    const data=await response.json();
+    if(!response.ok)throw new Error(data.detail||'AI request failed.');
+    bubble(data.reply||'Boss, AI ne khali jawab diya. Dobara try karein.','bot');
+    status.textContent='Connected · Reply received';
+  }catch(error){
+    bubble('Boss, AI server se connection nahi ho saka. Agar app abhi deploy nahi hui to pehle server deploy karna hoga. Error: '+error.message,'bot');
+    status.textContent='Connection issue · Check deployment';
+  }finally{
+    send.disabled=false;
+    input.focus();
+  }
 });
 </script>
 </body>
-  </html>
-  
+</html>
