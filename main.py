@@ -103,7 +103,8 @@ if report:
     # Enforce the ten-opportunity requirement instead of trusting the prompt alone.
     import re
     def opportunity_numbers(text):
-        return sorted(set(int(n) for n in re.findall(r"(?im)^## Opportunity\s+(\d+)\s*:", text)))
+        # Preserve order and duplicates so repeated or out-of-order headings fail validation.
+        return [int(n) for n in re.findall(r"(?im)^## Opportunity\s+(\d+)\s*:", text)]
     if opportunity_numbers(report) != list(range(1, 11)):
         print("Report did not contain all ten required headings; requesting one concise repair.")
         repair_prompt = (
