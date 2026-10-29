@@ -124,7 +124,7 @@ if report:
             errors.append(f"Report repair failed: {str(exc)[:180]}")
 
     if opportunity_numbers(report) != list(range(1, 11)):
-        print("WARNING: report is incomplete; the report will be marked for review.")
+        raise SystemExit("Report validation failed: expected exactly Opportunity 1 through Opportunity 10.")
 
 if not report:
     print("\n".join(errors))
