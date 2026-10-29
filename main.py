@@ -99,6 +99,33 @@ for model in models:
     if report:
         break
 
+if report:
+    # Enforce the ten-opportunity requirement instead of trusting the prompt alone.
+    import re
+    def opportunity_numbers(text):
+        return sorted(set(int(n) for n in re.findall(r"(?im)^## Opportunity\s+(\d+)\s*:", text)))
+    if opportunity_numbers(report) != list(range(1, 11)):
+        print("Report did not contain all ten required headings; requesting one concise repair.")
+        repair_prompt = (
+            "Repair the report below. Return the complete report with EXACTLY these headings, "
+            "'## Opportunity 1: ...' through '## Opportunity 10: ...', each appearing once. "
+            "Keep each opportunity concise and retain the required fields. Do not invent live listings, "
+            "prices, affiliate links, orders, or earnings. Preserve the report's honest data-status notes.\n\n"
+            + report
+        )
+        try:
+            repaired = client.models.generate_content(model=models[0], contents=repair_prompt)
+            if repaired.text and opportunity_numbers(repaired.text.strip()) == list(range(1, 11)):
+                report = repaired.text.strip()
+                print("Ten-opportunity heading validation passed after repair.")
+            else:
+                errors.append("Generated report still failed the ten-heading validation after repair.")
+        except Exception as exc:
+            errors.append(f"Report repair failed: {str(exc)[:180]}")
+
+    if opportunity_numbers(report) != list(range(1, 11)):
+        print("WARNING: report is incomplete; the report will be marked for review.")
+
 if not report:
     print("\n".join(errors))
     raise SystemExit("Trend Hunter could not generate a report. Check GitHub Actions logs.")
