@@ -55,7 +55,7 @@ LIVE TREND INPUT (Google Trends Pakistan RSS):
 DATA STATUS:
 {trend_status}
 
-Create a useful report with 10 product/content opportunities that could be tested on Daraz Pakistan, aiming to give the owner enough material to prepare 10-20 posts per day without repeating the same angle.
+Create EXACTLY 10 distinct product/content opportunities that could be tested on Daraz Pakistan. This is mandatory: do not stop after 5. Use headings exactly "## Opportunity 1: [product name]" through "## Opportunity 10: [product name]". Keep each item concise enough that all ten fit in one response while including every required field.
 Use the live topics only when there is a sensible connection to a product. Do not force irrelevant trends.
 If no relevant trend-to-product connection exists, label the product suggestion as an evergreen hypothesis.
 
@@ -69,7 +69,7 @@ For each opportunity provide:
 7. A product verification checklist: seller reliability, current price, reviews, sold count if shown, stock, shipping, return policy, and affiliate eligibility.
 8. Affiliate URL: write "ADD VERIFIED DARAZ AFFILIATE LINK" because no verified link was supplied.
 
-Then include: best first test and why; a suggested schedule for 10-20 daily posts across platforms without spam; three engagement experiments; a reusable tracking table template for clicks, messages, orders and commissions; and a short list of what is still unverified. Do not suggest publishing the identical post repeatedly.
+After Opportunity 10, include: best first test and why; a suggested schedule for 10-20 varied daily posts across platforms without spam; three engagement experiments; a reusable tracking table template for clicks, messages, orders and commissions; and a short list of what is still unverified. Before finishing, verify that all ten numbered opportunity headings are present. Do not suggest publishing the identical post repeatedly.
 
 Rules:
 - Never invent Daraz listings, prices, ratings, sold counts, commission rates, URLs, views, orders, or earnings.
