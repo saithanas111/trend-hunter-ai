@@ -1,75 +1,84 @@
 import os
 import time
+import json
+import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 
 from google import genai
-from google.genai.errors import ServerError
 
-api_key = os.environ.get("GEMINI_API_KEY")
+API_KEY = os.environ.get("GEMINI_API_KEY")
+if not API_KEY:
+    raise RuntimeError("GEMINI_API_KEY is not configured in GitHub Secrets.")
 
-if not api_key:
-    raise RuntimeError(
-        "GEMINI_API_KEY is not configured in GitHub Secrets."
+client = genai.Client(api_key=API_KEY)
+TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
+
+
+def fetch_pakistan_trends(limit=15):
+    """Fetch public Google Trends RSS items. Empty list is handled honestly."""
+    request = urllib.request.Request(
+        TRENDS_URL,
+        headers={"User-Agent": "TrendHunterAI/1.0 (trend research)"}
     )
+    try:
+        with urllib.request.urlopen(request, timeout=15) as response:
+            xml_data = response.read()
+        root = ET.fromstring(xml_data)
+        items = []
+        for item in root.findall(".//item")[:limit]:
+            title = (item.findtext("title") or "").strip()
+            traffic = (item.findtext("ht:approx_traffic", default="", namespaces={"ht": "https://trends.google.com/trending/rss"}) or "").strip()
+            if title:
+                items.append({"topic": title, "approx_traffic": traffic or "not provided"})
+        return items, None
+    except Exception as exc:
+        print(f"Trend feed unavailable: {exc}")
+        return [], str(exc)[:180]
 
-client = genai.Client(api_key=api_key)
 
-prompt = """
-You are Trend Hunter AI, the product-content assistant
-for a Pakistan-focused affiliate marketing business.
+trends, trend_error = fetch_pakistan_trends()
+if trends:
+    trend_context = json.dumps(trends, ensure_ascii=False, indent=2)
+    trend_status = "Google Trends Pakistan RSS was fetched successfully. It is a search-interest signal, not proof of product demand or sales."
+else:
+    trend_context = "No live trend items could be fetched during this run."
+    trend_status = "Live trend feed unavailable; do not pretend the report contains verified current trends."
 
-Your job is to create a practical, ready-to-use daily
-marketing report for the brand Trending Finds.
+prompt = f"""
+You are Trend Hunter AI, the honest research and content assistant for Trending Finds,
+a Pakistan-focused Daraz affiliate marketing project.
 
-Generate 5 product ideas across these categories:
-- Mobile accessories
-- Useful gadgets
-- Home products
-- Fashion
-- Beauty and lifestyle
+LIVE TREND INPUT (Google Trends Pakistan RSS):
+{trend_context}
 
-For EACH product, provide:
+DATA STATUS:
+{trend_status}
 
-1. Product name.
-2. Why a Pakistani customer might want it.
-3. Target customer.
-4. Main marketing angle.
-5. Facebook post caption with a clear call to action.
-6. Instagram caption with a clear call to action.
-7. TikTok caption with a short video hook.
-8. A simple 15-30 second video script.
-9. Five relevant hashtags.
-10. A suggested product-image or video concept.
-11. A checklist of what the owner must verify before
-    promoting the product.
-12. Affiliate link: write "ADD VERIFIED AFFILIATE LINK"
-    because no actual affiliate link was provided.
+Create a useful report with 5 product opportunities that could be tested on Daraz Pakistan.
+Use the live topics only when there is a sensible connection to a product. Do not force irrelevant trends.
+If no relevant trend-to-product connection exists, label the product suggestion as an evergreen hypothesis.
 
-Also include:
-- The best product idea to test first and why.
-- A simple posting schedule for one day.
-- Three practical ways to improve engagement.
-- A short checklist for tracking clicks, messages,
-  orders and commissions.
+For each opportunity provide:
+1. Product category and specific search terms the owner can use on Daraz.
+2. Related trend topic, or clearly label it "Evergreen hypothesis".
+3. Why it may interest a Pakistani audience (hypothesis, not proven demand).
+4. Target customer and marketing angle.
+5. Facebook caption, Instagram caption, TikTok hook, and 15-30 second video script.
+6. Five relevant hashtags.
+7. A product verification checklist: seller reliability, current price, reviews, sold count if shown, stock, shipping, return policy, and affiliate eligibility.
+8. Affiliate URL: write "ADD VERIFIED DARAZ AFFILIATE LINK" because no verified link was supplied.
 
-IMPORTANT RULES:
-- These are product ideas, not verified live trends.
-- Do not invent prices, ratings, sales figures,
-  product availability or affiliate links.
-- Do not claim a product is a bestseller without evidence.
-- Keep all content professional and easy to understand.
-- Write the report in clear English.
-- Make captions ready to edit and publish.
-- Do not claim posts were published or orders received.
-- Do not claim sales or earnings without real data.
+Then include: best first test, a one-day posting plan, three engagement experiments, and a simple tracking table template for clicks, messages, orders and commissions.
+
+Rules:
+- Never invent Daraz listings, prices, ratings, sold counts, commission rates, URLs, views, orders, or earnings.
+- Google Trends is a search-interest signal, not product sales proof.
+- No automatic social posts are published by this script.
+- Keep it practical, honest, and in clear English.
 """
 
-models = [
-    "gemini-3.8-flash",
-    "gemini-3.6-flash",
-    "gemini-3.5-flash-lite",
-]
-
+models = ["gemini-2.5-flash", "gemini-2.0-flash"]
 report = None
 errors = []
 
@@ -77,56 +86,39 @@ for model in models:
     for attempt in range(2):
         try:
             print(f"Trying {model}, attempt {attempt + 1}")
-
-            response = client.models.generate_content(
-                model=model,
-                contents=prompt,
-            )
-
+            response = client.models.generate_content(model=model, contents=prompt)
             if response.text and response.text.strip():
                 report = response.text.strip()
                 break
-
             errors.append(f"{model}: empty response")
-
-        except ServerError as error:
-            errors.append(f"{model}: {str(error)[:200]}")
-            print(f"Temporary AI service error: {error}")
-
+        except Exception as exc:
+            errors.append(f"{model}: {str(exc)[:180]}")
+            print(f"AI request failed: {model}: {exc}")
             if attempt == 0:
-                time.sleep(10)
-
-        except Exception as error:
-            errors.append(f"{model}: {str(error)[:200]}")
-            print(f"AI request failed: {error}")
-            break
-
+                time.sleep(5)
     if report:
         break
 
 if not report:
-    print("Trend Hunter could not generate a report.")
     print("\n".join(errors))
-    raise SystemExit(1)
+    raise SystemExit("Trend Hunter could not generate a report. Check GitHub Actions logs.")
 
-timestamp = datetime.now(timezone.utc).strftime(
-    "%Y-%m-%d %H:%M UTC"
+timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+source_note = (
+    "Google Trends Pakistan RSS was available for this run."
+    if trends else
+    "Google Trends Pakistan RSS was unavailable; recommendations are not based on live trend data."
 )
-
 full_report = (
     "# Trend Hunter AI Report\n\n"
     f"**Generated:** {timestamp}\n\n"
-    "**Data note:** These are AI-generated product "
-    "ideas, not verified live trends or sales data.\n\n"
-    "**Publishing note:** Captions and video scripts "
-    "are prepared for review. No posts are published "
-    "automatically by this script.\n\n"
+    f"**Trend source:** {source_note}\n\n"
+    "**Important:** Trend signals are not proof of product demand. Daraz listings, prices, seller quality, "
+    "commission eligibility, and affiliate URLs must be verified before promotion.\n\n"
+    "**Publishing status:** This run creates content only. It does not publish social posts or confirm sales.\n\n"
     f"{report}\n"
 )
-
 with open("trend_report.md", "w", encoding="utf-8") as file:
     file.write(full_report)
-
-print("\n===== TREND HUNTER REPORT =====\n")
 print(full_report)
-print("\nReport saved to trend_report.md")
+print("Report saved to trend_report.md")
