@@ -78,7 +78,7 @@ Rules:
 - Keep it practical, honest, and in clear English.
 """
 
-models = ["gemini-2.5-flash", "gemini-2.0-flash"]
+models = ["gemini-3.8-flash", "gemini-2.5-flash"]
 report = None
 errors = []
 
