@@ -60,7 +60,7 @@ Boss's message:
 """
     client = get_client()
     errors = []
-    for model in ["gemini-2.5-flash", "gemini-2.0-flash"]:
+    for model in ["gemini-3.8-flash", "gemini-2.5-flash"]:
         try:
             result = client.models.generate_content(model=model, contents=prompt)
             if result.text and result.text.strip():
