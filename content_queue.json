@@ -1,6 +1,117 @@
 {
-  "generated_at": "2026-10-31T16:37:28.369501+00:00",
-  "count": 0,
+  "generated_at": "2026-10-31T17:41:43.888432+00:00",
+  "count": 10,
   "notice": "Draft queue only. Affiliate links must be verified and posts require connected, authorized publishing integration and approval.",
-  "items": []
+  "items": [
+    {
+      "opportunity": 1,
+      "product": "Football Club Training Jersey",
+      "facebook_caption": "Big matches call for the right colours. Check out breathable football training kits available locally on Daraz. Link below!",
+      "instagram_caption": "Der Klassiker vibes. ⚽ Upgrade your turf kit game on Daraz. Link in bio!",
+      "tiktok_hook": "Still playing football in a random cotton t-shirt? Stop doing that!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 2,
+      "product": "Cricket Bat Grip Multi-Pack & Cone",
+      "facebook_caption": "Bat slipping in your hands during weekend tape-ball matches? Refresh your handle with these budget grip packs on Daraz.",
+      "instagram_caption": "Clean strokes start with a solid grip. 🏏 Multi-pack cricket grips on Daraz. Link in bio.",
+      "tiktok_hook": "The Rs. 300 hack to make your old cricket bat feel brand new!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 3,
+      "product": "Protective Football Shin Guards with Sleeves",
+      "facebook_caption": "Play hard on the turf without bruised shins. Affordable, lightweight shin guards available on Daraz. Link in comments!",
+      "instagram_caption": "Protect your legs before your next turf match. ⚽ Lightweight shin pads on Daraz. Link in bio.",
+      "tiktok_hook": "Stop playing turf football without these—your shins will thank you!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 4,
+      "product": "Sports Sweatbands & Wristbands Set",
+      "facebook_caption": "Keep sweat from ruining your racket grip during badminton or tennis. Practical sweatband pairs on Daraz.",
+      "instagram_caption": "Sweat management made simple for gym and court sessions. 🎾 Check options on Daraz via link in bio!",
+      "tiktok_hook": "The simplest Rs. 200 gym accessory that actually works!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 5,
+      "product": "High-Speed 4K HDMI to TV Cable",
+      "facebook_caption": "Tired of Wi-Fi mirroring lag when watching live sports? A direct 4K HDMI cable gives you smooth, full-screen playback. Link below!",
+      "instagram_caption": "Upgrade your match-day viewing experience. 📺 Direct laptop-to-TV HDMI cables on Daraz. Link in bio!",
+      "tiktok_hook": "Stop using wireless screen cast for live matches—here's why!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 6,
+      "product": "Foldable Aluminum Laptop Riser Stand",
+      "facebook_caption": "Working long hours from home? An adjustable laptop stand keeps your screen at eye level and stops neck pain. Options on Daraz below!",
+      "instagram_caption": "Your neck will thank you. 💻 Foldable aluminum laptop stand for comfortable work. Link in bio!",
+      "tiktok_hook": "If you work on a laptop every day, you need to see this desk upgrade.",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 7,
+      "product": "20,000mAh Fast Charging Power Bank",
+      "facebook_caption": "Never worry about finding an outlet while out. High-capacity fast-charging power banks available on Daraz. Link below!",
+      "instagram_caption": "Reliable backup power for long days out. 🔋 Fast charging power banks on Daraz. Link in bio!",
+      "tiktok_hook": "The one gadget every Pakistani needs in their backpack every single day.",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 8,
+      "product": "Magnetic Neckband Wireless Earphones",
+      "facebook_caption": "Looking for wireless audio that won't fall out while on a bike? Magnetic neckbands offer great battery and secure wear. Link below!",
+      "instagram_caption": "Safe, secure audio for commuting and workouts. 🎧 Check top-rated neckbands on Daraz via link in bio!",
+      "tiktok_hook": "Why bike riders in Pakistan prefer neckbands over regular earbuds!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 9,
+      "product": "Rechargeable Fabric Shaver / Lint Remover",
+      "facebook_caption": "Don't throw away fuzzy sweaters or shawls. A rechargeable fabric shaver removes lint smoothly without fabric damage. Link below!",
+      "instagram_caption": "Satisfying garment care. ✨ Restore your winter wear and fabrics with this compact shaver on Daraz. Link in bio!",
+      "tiktok_hook": "Don't throw out your favorite hoodie until you try this!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    },
+    {
+      "opportunity": 10,
+      "product": "Desktop Ring Light with Phone Mount",
+      "facebook_caption": "Grainy video on your calls and reels? A simple desktop ring light makes your phone camera look twice as sharp. Link below!",
+      "instagram_caption": "Better lighting equals better video. 💡 Compact desk ring lights on Daraz. Link in bio!",
+      "tiktok_hook": "How to make a cheap phone camera look like a pro studio setup!",
+      "affiliate_url": "",
+      "affiliate_status": "needs_verified_link",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    }
+  ]
 }
