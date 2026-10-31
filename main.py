@@ -78,26 +78,25 @@ Rules:
 - Keep it practical, honest, and in clear English.
 """
 
-models = ["gemini-3.8-flash", "gemini-2.5-flash"]
+model = "gemini-3.8-flash"
 report = None
 errors = []
 
-for model in models:
-    for attempt in range(2):
-        try:
-            print(f"Trying {model}, attempt {attempt + 1}")
-            response = client.models.generate_content(model=model, contents=prompt)
-            if response.text and response.text.strip():
-                report = response.text.strip()
-                break
-            errors.append(f"{model}: empty response")
-        except Exception as exc:
-            errors.append(f"{model}: {str(exc)[:180]}")
-            print(f"AI request failed: {model}: {exc}")
-            if attempt == 0:
-                time.sleep(5)
-    if report:
-        break
+# Retry temporary service overloads with increasing delays. Do not call the retired fallback model.
+for attempt, delay in enumerate((0, 15, 30, 60), start=1):
+    try:
+        if delay:
+            print(f"Waiting {delay}s before retrying Gemini after a temporary failure.")
+            time.sleep(delay)
+        print(f"Trying {model}, attempt {attempt}/4")
+        response = client.models.generate_content(model=model, contents=prompt)
+        if response.text and response.text.strip():
+            report = response.text.strip()
+            break
+        errors.append(f"{model}: empty response")
+    except Exception as exc:
+        errors.append(f"{model}: {str(exc)[:180]}")
+        print(f"AI request failed: {model}: {exc}")
 
 if report:
     # Enforce the ten-opportunity requirement instead of trusting the prompt alone.
@@ -115,7 +114,7 @@ if report:
             + report
         )
         try:
-            repaired = client.models.generate_content(model=models[0], contents=repair_prompt)
+            repaired = client.models.generate_content(model=model, contents=repair_prompt)
             if repaired.text and opportunity_numbers(repaired.text.strip()) == list(range(1, 11)):
                 report = repaired.text.strip()
                 print("Ten-opportunity heading validation passed after repair.")
