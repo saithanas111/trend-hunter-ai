@@ -1,6 +1,11 @@
 name: Trend Hunter AI
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "main.py"
+      - ".github/workflows/trend-hunter.yml"
   workflow_dispatch:
   schedule:
     - cron: "0 */6 * * *"
