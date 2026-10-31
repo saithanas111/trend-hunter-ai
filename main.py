@@ -127,8 +127,49 @@ if report:
         raise SystemExit("Report validation failed: expected exactly Opportunity 1 through Opportunity 10.")
 
 if not report:
-    print("\n".join(errors))
-    raise SystemExit("Trend Hunter could not generate a report. Check GitHub Actions logs.")
+    # Honest offline fallback: useful evergreen hypotheses, never presented as live trends.
+    print("Gemini unavailable; building a clearly labelled offline starter report.")
+    fallback_products = [
+        ("Fast charging cable", "Mobile accessories", "durable USB charging cable"),
+        ("Phone stand", "Mobile accessories", "adjustable mobile phone stand"),
+        ("Wireless earbuds", "Audio accessories", "wireless earbuds"),
+        ("Power bank", "Mobile accessories", "10000mAh power bank"),
+        ("LED desk lamp", "Home and study", "rechargeable LED desk lamp"),
+        ("Insulated water bottle", "Lifestyle", "leakproof insulated water bottle"),
+        ("Mini tripod", "Creator accessories", "mobile mini tripod"),
+        ("Car phone holder", "Car accessories", "dashboard mobile phone holder"),
+        ("Storage organizer", "Home organization", "drawer storage organizer"),
+        ("Men's basic T-shirt", "Fashion", "men plain cotton T-shirt"),
+    ]
+    blocks = []
+    for i, (product, category, search_term) in enumerate(fallback_products, start=1):
+        blocks.append(
+            f"## Opportunity {i}: {product}\\n"
+            f"- Category: {category}\\n"
+            f"- Daraz search terms: {search_term}\\n"
+            f"- Trend status: Evergreen hypothesis; no live trend connection verified.\\n"
+            f"- Why test: A practical everyday-use item; demand and competition must be checked.\\n"
+            f"- Target customer: Pakistani shoppers seeking useful, affordable products.\\n"
+            f"- Marketing angle: Show the product solving one clear everyday problem.\\n"
+            f"- Facebook caption: Looking for a simple everyday upgrade? Explore this {product.lower()} and compare features before buying.\\n"
+            f"- Instagram caption: A practical pick worth checking out. See details before you decide.\\n"
+            f"- TikTok hook: One small accessory that may make daily life easier.\\n"
+            f"- 15-30 sec video script: Show the item; demonstrate its main use; mention one benefit; remind viewers to check price, reviews and seller details.\\n"
+            f"- Hashtags: #TrendingFinds #DarazPakistan #PakistanShopping #ProductFinds #SmartShopping\\n"
+            f"- Verify: seller rating, current price, reviews, sold count if shown, stock, shipping, returns and affiliate eligibility.\\n"
+            f"- Affiliate URL: ADD VERIFIED DARAZ AFFILIATE LINK\\n"
+        )
+    report = (
+        "## AI service unavailable — offline starter hypotheses\\n"
+        "These are generic product ideas, not verified trends, listings, demand, or sales. "
+        "Gemini was temporarily unavailable during this run.\\n\\n"
+        + "\\n".join(blocks)
+        + "\\n## First test\\nStart by manually verifying one product with strong seller history, competitive price and eligible affiliate link.\\n"
+        "## Posting plan\\nCreate varied platform-specific posts; do not publish duplicate or spam content. No posts are published by this report.\\n"
+        "## Experiments\\nTest demonstration vs. problem-solution hooks; compare short video vs. image; compare CTA wording.\\n"
+        "## Tracking template\\nDate | Product | Platform | Link clicks | Messages | Orders | Commission\\n"
+        "## Unverified\\nListings, prices, sellers, stock, commissions, affiliate URLs, views, orders and earnings.\\n"
+    )
 
 timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 source_note = (
