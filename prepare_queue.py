@@ -10,15 +10,14 @@ QUEUE_CSV = Path("content_queue.csv")
 
 
 def clean(value):
-    return re.sub(r"\\s+", " ", value or "").strip().strip("`*")
+    return re.sub(r"\s+", " ", value or "").strip().strip("\`*")
 
 
 def extract(section, label):
-    # Captions in the report are usually bold labels embedded in a numbered paragraph.
     patterns = [
-        rf"(?im)^\\s*[-*]?\\s*\\*\\*{re.escape(label)}:\\*\\*\\s*(.+)$",
-        rf"(?im)^\\s*\\d+\\.\\s*\\*\\*{re.escape(label)}:\\*\\*\\s*(.+)$",
-        rf"(?im)^\\s*[-*]?\\s*{re.escape(label)}\\s*:\\s*(.+)$",
+        rf"(?im)^\s*[-*]?\s*\*\*{re.escape(label)}:\*\*\s*(.+)$",
+        rf"(?im)^\s*\d+\.\s*\*\*{re.escape(label)}:\*\*\s*(.+)$",
+        rf"(?im)^\s*[-*]?\s*{re.escape(label)}\s*:\s*(.+)$",
     ]
     for pattern in patterns:
         match = re.search(pattern, section)
@@ -31,7 +30,7 @@ def main():
     if not REPORT.exists():
         raise SystemExit("trend_report.md is missing; run main.py first.")
     report = REPORT.read_text(encoding="utf-8")
-    matches = list(re.finditer(r"(?m)^## Opportunity\\s+(\\d+)\\s*:\\s*(.+)$", report))
+    matches = list(re.finditer(r"(?m)^## Opportunity\s+(\d+)\s*:\s*(.+)$", report))
     numbers = [int(match.group(1)) for match in matches]
     if numbers != list(range(1, 11)):
         raise SystemExit(f"Expected Opportunity 1 through 10 exactly once; found {numbers}")
@@ -53,7 +52,6 @@ def main():
             "approval_required": True,
         })
 
-    # Do not silently create an empty or incomplete queue.
     missing = [
         item["opportunity"] for item in queue
         if not item["facebook_caption"] or not item["instagram_caption"] or not item["tiktok_hook"]
