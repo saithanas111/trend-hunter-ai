@@ -10,7 +10,7 @@ QUEUE_CSV = Path("content_queue.csv")
 
 
 def clean(value):
-    return re.sub(r"\s+", " ", value or "").strip().strip("\`*")
+    return re.sub(r"\s+", " ", value or "").strip().strip("`*")
 
 
 def extract(section, label):
@@ -29,7 +29,7 @@ def extract(section, label):
 def main():
     if not REPORT.exists():
         raise SystemExit("trend_report.md is missing; run main.py first.")
-    report = REPORT.read_text(encoding="utf-8")
+    report = REPORT.read_text(encoding="utf-8").replace("\\n", "\n")
     matches = list(re.finditer(r"(?m)^## Opportunity\s+(\d+)\s*:\s*(.+)$", report))
     numbers = [int(match.group(1)) for match in matches]
     if numbers != list(range(1, 11)):
