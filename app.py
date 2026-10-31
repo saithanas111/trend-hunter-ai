@@ -60,14 +60,18 @@ Boss's message:
 """
     client = get_client()
     errors = []
-    for model in ["gemini-3.8-flash", "gemini-2.5-flash"]:
+    model = "gemini-3.8-flash"
+    for attempt, delay in enumerate((0, 3, 8), start=1):
         try:
+            if delay:
+                import time
+                time.sleep(delay)
             result = client.models.generate_content(model=model, contents=prompt)
             if result.text and result.text.strip():
                 return {"reply": result.text.strip()}
             errors.append(f"{model}: empty response")
         except Exception as exc:
-            errors.append(f"{model}: {str(exc)[:160]}")
+            errors.append(f"{model} attempt {attempt}: {str(exc)[:160]}")
 
     print("Gemini chat errors:", " | ".join(errors))
     raise HTTPException(
