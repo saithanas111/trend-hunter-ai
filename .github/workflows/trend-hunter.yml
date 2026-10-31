@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "main.py"
+      - "prepare_queue.py"
       - ".github/workflows/trend-hunter.yml"
   workflow_dispatch:
   schedule:
@@ -34,6 +35,9 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python main.py
 
+      - name: Prepare structured content queue
+        run: python prepare_queue.py
+
       - name: Save dated report
         run: |
           mkdir -p reports
@@ -43,7 +47,7 @@ jobs:
         run: |
           git config user.name "Trend Hunter AI"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/
+          git add reports/ content_queue.json content_queue.csv
           git diff --cached --quiet || git commit -m "Save Trend Hunter report history"
           git push
 
@@ -51,6 +55,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: trend-hunter-report
-          path: trend_report.md
+          path: |
+            trend_report.md
+            content_queue.json
+            content_queue.csv
           if-no-files-found: error
           retention-days: 90
