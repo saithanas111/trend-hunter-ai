@@ -1,192 +1,230 @@
 import os
-import time
+import re
 import json
+import time
+import html
+import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
+from html.parser import HTMLParser
 from datetime import datetime, timezone
 
 from google import genai
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
-if not API_KEY:
-    raise RuntimeError("GEMINI_API_KEY is not configured in GitHub Secrets.")
-
-client = genai.Client(api_key=API_KEY)
+client = genai.Client(api_key=API_KEY) if API_KEY else None
+MODEL = "gemini-3.8-flash"
+HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; TrendHunterAI/1.0; +https://github.com/saithanas111/trend-hunter-ai)"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
+REDDIT_FEEDS = [
+    "https://www.reddit.com/r/BuyItForLife/hot.json?limit=20",
+    "https://www.reddit.com/r/gadgets/hot.json?limit=20",
+    "https://www.reddit.com/r/DidntKnowIWantedThat/hot.json?limit=20",
+]
 
+def fetch_url(url, timeout=18):
+    request = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return response.read()
 
-def fetch_pakistan_trends(limit=15):
-    """Fetch public Google Trends RSS items. Empty list is handled honestly."""
-    request = urllib.request.Request(
-        TRENDS_URL,
-        headers={"User-Agent": "TrendHunterAI/1.0 (trend research)"}
-    )
+def fetch_google_trends():
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
-            xml_data = response.read()
-        root = ET.fromstring(xml_data)
-        items = []
-        for item in root.findall(".//item")[:limit]:
+        root = ET.fromstring(fetch_url(TRENDS_URL))
+        rows = []
+        for item in root.findall(".//item")[:20]:
             title = (item.findtext("title") or "").strip()
             traffic = (item.findtext("ht:approx_traffic", default="", namespaces={"ht": "https://trends.google.com/trending/rss"}) or "").strip()
             if title:
-                items.append({"topic": title, "approx_traffic": traffic or "not provided"})
-        return items, None
+                rows.append({"topic": title, "approx_traffic": traffic or None, "source": "Google Trends Pakistan RSS"})
+        return rows, None
     except Exception as exc:
-        print(f"Trend feed unavailable: {exc}")
-        return [], str(exc)[:180]
+        return [], str(exc)[:200]
 
-
-trends, trend_error = fetch_pakistan_trends()
-if trends:
-    trend_context = json.dumps(trends, ensure_ascii=False, indent=2)
-    trend_status = "Google Trends Pakistan RSS was fetched successfully. It is a search-interest signal, not proof of product demand or sales."
-else:
-    trend_context = "No live trend items could be fetched during this run."
-    trend_status = "Live trend feed unavailable; do not pretend the report contains verified current trends."
-
-prompt = f"""
-You are Trend Hunter AI, the honest research and content assistant for Trending Finds,
-a Pakistan-focused Daraz affiliate marketing project.
-
-LIVE TREND INPUT (Google Trends Pakistan RSS):
-{trend_context}
-
-DATA STATUS:
-{trend_status}
-
-Create EXACTLY 10 distinct product/content opportunities that could be tested on Daraz Pakistan. This is mandatory: do not stop after 5. Use headings exactly "## Opportunity 1: [product name]" through "## Opportunity 10: [product name]". Keep each item concise enough that all ten fit in one response while including every required field.
-Use the live topics only when there is a sensible connection to a product. Do not force irrelevant trends.
-If no relevant trend-to-product connection exists, label the product suggestion as an evergreen hypothesis.
-
-For each opportunity provide:
-1. Product category and specific search terms the owner can use on Daraz.
-2. Related trend topic, or clearly label it "Evergreen hypothesis".
-3. Why it may interest a Pakistani audience (hypothesis, not proven demand).
-4. Target customer and marketing angle.
-5. Facebook caption, Instagram caption, TikTok hook, and 15-30 second video script.
-6. Five relevant hashtags.
-7. A product verification checklist: seller reliability, current price, reviews, sold count if shown, stock, shipping, return policy, and affiliate eligibility.
-8. Affiliate URL: write "ADD VERIFIED DARAZ AFFILIATE LINK" because no verified link was supplied.
-
-After Opportunity 10, include: best first test and why; a suggested schedule for 10-20 varied daily posts across platforms without spam; three engagement experiments; a reusable tracking table template for clicks, messages, orders and commissions; and a short list of what is still unverified. Before finishing, verify that all ten numbered opportunity headings are present. Do not suggest publishing the identical post repeatedly.
-
-Rules:
-- Never invent Daraz listings, prices, ratings, sold counts, commission rates, URLs, views, orders, or earnings.
-- Google Trends is a search-interest signal, not product sales proof.
-- No automatic social posts are published by this script.
-- Keep it practical, honest, and in clear English.
-"""
-
-model = "gemini-3.8-flash"
-report = None
-errors = []
-
-# Retry temporary service overloads with increasing delays. Do not call the retired fallback model.
-for attempt, delay in enumerate((0, 15, 30, 60), start=1):
-    try:
-        if delay:
-            print(f"Waiting {delay}s before retrying Gemini after a temporary failure.")
-            time.sleep(delay)
-        print(f"Trying {model}, attempt {attempt}/4")
-        response = client.models.generate_content(model=model, contents=prompt)
-        if response.text and response.text.strip():
-            report = response.text.strip()
-            break
-        errors.append(f"{model}: empty response")
-    except Exception as exc:
-        errors.append(f"{model}: {str(exc)[:180]}")
-        print(f"AI request failed: {model}: {exc}")
-
-if report:
-    # Enforce the ten-opportunity requirement instead of trusting the prompt alone.
-    import re
-    def opportunity_numbers(text):
-        # Preserve order and duplicates so repeated or out-of-order headings fail validation.
-        return [int(n) for n in re.findall(r"(?im)^## Opportunity\s+(\d+)\s*:", text)]
-    if opportunity_numbers(report) != list(range(1, 11)):
-        print("Report did not contain all ten required headings; requesting one concise repair.")
-        repair_prompt = (
-            "Repair the report below. Return the complete report with EXACTLY these headings, "
-            "'## Opportunity 1: ...' through '## Opportunity 10: ...', each appearing once. "
-            "Keep each opportunity concise and retain the required fields. Do not invent live listings, "
-            "prices, affiliate links, orders, or earnings. Preserve the report's honest data-status notes.\n\n"
-            + report
-        )
+def fetch_social_signals():
+    rows, errors = [], []
+    for feed in REDDIT_FEEDS:
         try:
-            repaired = client.models.generate_content(model=model, contents=repair_prompt)
-            if repaired.text and opportunity_numbers(repaired.text.strip()) == list(range(1, 11)):
-                report = repaired.text.strip()
-                print("Ten-opportunity heading validation passed after repair.")
-            else:
-                errors.append("Generated report still failed the ten-heading validation after repair.")
+            data = json.loads(fetch_url(feed).decode("utf-8"))
+            for child in data.get("data", {}).get("children", []):
+                post = child.get("data", {})
+                title = (post.get("title") or "").strip()
+                if title and not post.get("stickied"):
+                    rows.append({
+                        "title": title[:220],
+                        "community": post.get("subreddit"),
+                        "score": post.get("score"),
+                        "comments": post.get("num_comments"),
+                        "url": "https://www.reddit.com" + (post.get("permalink") or ""),
+                        "source": "Reddit public hot posts",
+                    })
         except Exception as exc:
-            errors.append(f"Report repair failed: {str(exc)[:180]}")
+            errors.append(str(exc)[:140])
+    rows.sort(key=lambda x: (x.get("score") or 0) + 2 * (x.get("comments") or 0), reverse=True)
+    return rows[:30], errors
 
-    if opportunity_numbers(report) != list(range(1, 11)):
-        raise SystemExit("Report validation failed: expected exactly Opportunity 1 through Opportunity 10.")
+class DarazProductParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.items = []
+        self.current = None
+        self.depth = 0
 
-if not report:
-    # Honest offline fallback: useful evergreen hypotheses, never presented as live trends.
-    print("Gemini unavailable; building a clearly labelled offline starter report.")
-    fallback_products = [
-        ("Fast charging cable", "Mobile accessories", "durable USB charging cable"),
-        ("Phone stand", "Mobile accessories", "adjustable mobile phone stand"),
-        ("Wireless earbuds", "Audio accessories", "wireless earbuds"),
-        ("Power bank", "Mobile accessories", "10000mAh power bank"),
-        ("LED desk lamp", "Home and study", "rechargeable LED desk lamp"),
-        ("Insulated water bottle", "Lifestyle", "leakproof insulated water bottle"),
-        ("Mini tripod", "Creator accessories", "mobile mini tripod"),
-        ("Car phone holder", "Car accessories", "dashboard mobile phone holder"),
-        ("Storage organizer", "Home organization", "drawer storage organizer"),
-        ("Men's basic T-shirt", "Fashion", "men plain cotton T-shirt"),
+    def handle_starttag(self, tag, attrs):
+        attrs = dict(attrs)
+        href = attrs.get("href", "")
+        if tag == "a" and "/products/" in href and not self.current:
+            if href.startswith("//"):
+                href = "https:" + href
+            elif href.startswith("/"):
+                href = "https://www.daraz.pk" + href
+            if "daraz.pk" in href:
+                self.current = {"url": href.split("?")[0], "text": ""}
+                self.depth = 1
+        elif self.current:
+            self.depth += 1
+
+    def handle_data(self, data):
+        if self.current:
+            self.current["text"] += " " + data.strip()
+
+    def handle_endtag(self, tag):
+        if self.current:
+            self.depth -= 1
+            if self.depth <= 0:
+                title = re.sub(r"\\s+", " ", html.unescape(self.current["text"])).strip()
+                if len(title) > 12:
+                    self.current["title"] = title[:240]
+                    self.items.append(self.current)
+                self.current = None
+                self.depth = 0
+
+def search_daraz(query, limit=4):
+    url = "https://www.daraz.pk/catalog/?q=" + urllib.parse.quote(query)
+    try:
+        raw = fetch_url(url, timeout=22).decode("utf-8", errors="ignore")
+        parser = DarazProductParser()
+        parser.feed(raw)
+        seen, found = set(), []
+        for item in parser.items:
+            if item["url"] not in seen:
+                seen.add(item["url"])
+                found.append({
+                    "title": item["title"],
+                    "url": item["url"],
+                    "search_query": query,
+                    "source": "Daraz Pakistan search page",
+                    "verification": "Listing URL and title extracted from live Daraz search HTML; seller, price, stock, reviews and affiliate eligibility not verified."
+                })
+            if len(found) >= limit:
+                break
+        return found, None
+    except Exception as exc:
+        return [], str(exc)[:200]
+
+def gemini_text(prompt):
+    if not client:
+        raise RuntimeError("GEMINI_API_KEY is not configured.")
+    last = None
+    for attempt in range(3):
+        try:
+            response = client.models.generate_content(model=MODEL, contents=prompt)
+            if response.text and response.text.strip():
+                return response.text.strip()
+            last = "Gemini returned an empty response."
+        except Exception as exc:
+            last = str(exc)[:200]
+            if attempt < 2:
+                time.sleep(12 * (attempt + 1))
+    raise RuntimeError(last or "Gemini request failed.")
+
+def make_queries(trends, social):
+    source = {"google_trends": trends[:15], "social_posts": social[:18]}
+    prompt = """From these current Pakistan search-interest and public social-discussion signals, extract up to 8 concrete physical product search queries that have a defensible connection to the source posts/topics. Return ONLY valid JSON array of short search queries. Do not invent viral status, demand or products unrelated to the source. If no product connection exists, return []. Signals:
+""" + json.dumps(source, ensure_ascii=False)
+    text = gemini_text(prompt)
+    match = re.search(r"\\[[\\s\\S]*\\]", text)
+    if not match:
+        raise ValueError("Trend-to-product query response was not valid JSON array.")
+    values = json.loads(match.group(0))
+    return [str(x).strip()[:100] for x in values if str(x).strip()][:8]
+
+def build_report(trends, social, products, errors):
+    stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    lines = [
+        "# Trend Hunter AI Report", "",
+        f"**Generated:** {stamp}", "",
+        "## Live research status",
+        f"- Google Trends Pakistan topics fetched: {len(trends)}",
+        f"- Public Reddit hot-post signals fetched: {len(social)}",
+        f"- Daraz listing candidates extracted: {len(products)}",
+        "- Reddit scores/comments and Google Trends are attention/search signals, not proof of Pakistan sales.",
+        "- Daraz candidates are live search-page extracts only; seller quality, price, stock, reviews, shipping, returns and affiliate eligibility still require verification.",
+        "- No affiliate links are generated by this run. The known Daraz method is manual and no official affiliate-link API has been confirmed.",
+        "- No social posts are published by this run.", ""
     ]
-    blocks = []
-    for i, (product, category, search_term) in enumerate(fallback_products, start=1):
-        blocks.append(
-            f"## Opportunity {i}: {product}\\n"
-            f"- Category: {category}\\n"
-            f"- Daraz search terms: {search_term}\\n"
-            f"- Trend status: Evergreen hypothesis; no live trend connection verified.\\n"
-            f"- Why test: A practical everyday-use item; demand and competition must be checked.\\n"
-            f"- Target customer: Pakistani shoppers seeking useful, affordable products.\\n"
-            f"- Marketing angle: Show the product solving one clear everyday problem.\\n"
-            f"- Facebook caption: Looking for a simple everyday upgrade? Explore this {product.lower()} and compare features before buying.\\n"
-            f"- Instagram caption: A practical pick worth checking out. See details before you decide.\\n"
-            f"- TikTok hook: One small accessory that may make daily life easier.\\n"
-            f"- 15-30 sec video script: Show the item; demonstrate its main use; mention one benefit; remind viewers to check price, reviews and seller details.\\n"
-            f"- Hashtags: #TrendingFinds #DarazPakistan #PakistanShopping #ProductFinds #SmartShopping\\n"
-            f"- Verify: seller rating, current price, reviews, sold count if shown, stock, shipping, returns and affiliate eligibility.\\n"
-            f"- Affiliate URL: ADD VERIFIED DARAZ AFFILIATE LINK\\n"
-        )
-    report = (
-        "## AI service unavailable — offline starter hypotheses\\n"
-        "These are generic product ideas, not verified trends, listings, demand, or sales. "
-        "Gemini was temporarily unavailable during this run.\\n\\n"
-        + "\\n".join(blocks)
-        + "\\n## First test\\nStart by manually verifying one product with strong seller history, competitive price and eligible affiliate link.\\n"
-        "## Posting plan\\nCreate varied platform-specific posts; do not publish duplicate or spam content. No posts are published by this report.\\n"
-        "## Experiments\\nTest demonstration vs. problem-solution hooks; compare short video vs. image; compare CTA wording.\\n"
-        "## Tracking template\\nDate | Product | Platform | Link clicks | Messages | Orders | Commission\\n"
-        "## Unverified\\nListings, prices, sellers, stock, commissions, affiliate URLs, views, orders and earnings.\\n"
-    )
+    if trends:
+        lines += ["## Google Trends Pakistan signals"]
+        lines += [f"- {x['topic']} (approx. traffic: {x['approx_traffic'] or 'not provided'})" for x in trends[:12]]
+        lines.append("")
+    if social:
+        lines += ["## Public social discussion signals"]
+        lines += [f"- [{x['community']}] {x['title']} (score {x['score']}, comments {x['comments']}) — {x['url']}" for x in social[:12]]
+        lines.append("")
+    if products:
+        lines += ["## Daraz Pakistan listing candidates"]
+        for i, p in enumerate(products, 1):
+            lines += [
+                f"### Candidate {i}: {p['title']}",
+                f"- Search query: {p['search_query']}",
+                f"- Live Daraz listing: {p['url']}",
+                f"- Status: {p['verification']}", ""
+            ]
+    else:
+        lines += [
+            "## Daraz matching result",
+            "No Daraz product listing could be reliably extracted in this run. No product has been labelled as matched or verified, and no generic product ideas have been substituted.", ""
+        ]
+    lines += ["## Errors / limitations"]
+    lines += [f"- {e}" for e in errors] if errors else ["- No fetch errors recorded."]
+    lines += [
+        "", "## Next required verification",
+        "Open a candidate listing and verify seller rating/history, current price, reviews, sold count if shown, stock, shipping, returns and affiliate eligibility. Affiliate deeplink generation remains manual until Daraz provides a supported automation route."
+    ]
+    return "\\n".join(lines) + "\\n"
 
-timestamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-source_note = (
-    "Google Trends Pakistan RSS was available for this run."
-    if trends else
-    "Google Trends Pakistan RSS was unavailable; recommendations are not based on live trend data."
-)
-full_report = (
-    "# Trend Hunter AI Report\n\n"
-    f"**Generated:** {timestamp}\n\n"
-    f"**Trend source:** {source_note}\n\n"
-    "**Important:** Trend signals are not proof of product demand. Daraz listings, prices, seller quality, "
-    "commission eligibility, and affiliate URLs must be verified before promotion.\n\n"
-    "**Publishing status:** This run creates content only. It does not publish social posts or confirm sales.\n\n"
-    f"{report}\n"
-)
-with open("trend_report.md", "w", encoding="utf-8") as file:
-    file.write(full_report)
-print(full_report)
-print("Report saved to trend_report.md")
+def main():
+    errors = []
+    trends, err = fetch_google_trends()
+    if err: errors.append("Google Trends: " + err)
+    social, social_errors = fetch_social_signals()
+    errors += ["Social feed: " + x for x in social_errors[:3]]
+    products = []
+    try:
+        queries = make_queries(trends, social)
+        if not queries:
+            errors.append("No defensible product queries could be derived from current trend signals.")
+        for query in queries:
+            matches, search_error = search_daraz(query)
+            if search_error:
+                errors.append(f"Daraz search for '{query}': {search_error}")
+            products.extend(matches)
+            if len(products) >= 15:
+                break
+            time.sleep(2)
+    except Exception as exc:
+        errors.append("AI trend-to-product matching: " + str(exc)[:200])
+    # De-duplicate by listing URL.
+    unique = {}
+    for item in products:
+        unique.setdefault(item["url"], item)
+    products = list(unique.values())[:15]
+    report = build_report(trends, social, products, errors)
+    with open("trend_report.md", "w", encoding="utf-8") as f:
+        f.write(report)
+    with open("daraz_candidates.json", "w", encoding="utf-8") as f:
+        json.dump({"generated_at": datetime.now(timezone.utc).isoformat(), "count": len(products), "items": products}, f, ensure_ascii=False, indent=2)
+    print(report)
+    print(f"Saved {len(products)} Daraz listing candidates.")
+
+if __name__ == "__main__":
+    main()
