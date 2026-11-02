@@ -233,6 +233,16 @@ def main():
     for item in products:
         unique.setdefault(item["url"], item)
     products = list(unique.values())[:15]
+
+    # Generate copy only for real Daraz listing candidates extracted above.
+    for product in products:
+        try:
+            product["social_copy"] = create_social_copy(product)
+        except Exception as exc:
+            product["social_copy_error"] = str(exc)[:200]
+            errors.append("Social copy for '" + product["title"][:80] + "': " + str(exc)[:160])
+        time.sleep(1)
+
     report = build_report(trends, social, products, errors)
     with open("trend_report.md", "w", encoding="utf-8") as f:
         f.write(report)
