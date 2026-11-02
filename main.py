@@ -148,6 +148,21 @@ def make_queries(trends, social):
     values = json.loads(match.group(0))
     return [str(x).strip()[:100] for x in values if str(x).strip()][:8]
 
+def create_social_copy(product):
+    prompt = """Create concise original platform-specific marketing copy for this Daraz Pakistan product candidate.
+Return ONLY JSON with keys facebook_caption, instagram_caption, tiktok_hook, video_script, hashtags (array of 5).
+Do not claim it is viral, best-selling, discounted, tested, or in stock. Do not invent price, features or guarantees.
+Product title: """ + product["title"] + "\\nDaraz listing: " + product["url"]
+    raw = gemini_text(prompt)
+    match = re.search(r"\\{[\\s\\S]*\\}", raw)
+    if not match:
+        raise ValueError("Social copy response was not valid JSON.")
+    data = json.loads(match.group(0))
+    required = ["facebook_caption", "instagram_caption", "tiktok_hook", "video_script", "hashtags"]
+    if any(not data.get(k) for k in required):
+        raise ValueError("Social copy response is missing required fields.")
+    return data
+
 def build_report(trends, social, products, errors):
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     lines = [
