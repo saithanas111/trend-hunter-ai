@@ -5,7 +5,7 @@ on:
     branches: [main]
     paths:
       - "main.py"
-      - "prepare_queue.py"
+      - "prepare_queue.py"\n      - "daraz_candidates.json"
       - ".github/workflows/trend-hunter.yml"
   workflow_dispatch:
   schedule:
