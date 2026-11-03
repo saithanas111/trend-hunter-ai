@@ -58,7 +58,7 @@ def main():
         if not image_url.startswith("https://") or not affiliate_url.startswith("https://"):
             continue
 
-        full_caption = f"{caption.strip()}\\n\\nShop here: {affiliate_url}"
+        full_caption = f"{caption.strip()}\n\nShop here: {affiliate_url}"
         try:
             base = f"https://graph.facebook.com/{GRAPH_VERSION}/{user_id}"
             created = request_json(base + "/media", {
