@@ -43,6 +43,9 @@ jobs:
       - name: Prepare structured content queue
         run: python prepare_queue.py
 
+      - name: Validate queue safety
+        run: python validate_queue.py
+
       - name: Save dated report
         run: |
           mkdir -p reports
