@@ -50,3 +50,23 @@ For a hosted deployment, set `GEMINI_API_KEY` as a private environment variable 
 2. Add verified Daraz product data and affiliate-link handling using an authorized/official method where available.
 3. Add approved social publishing integrations.
 4. Add real analytics and order reporting only after the relevant accounts and APIs are connected.
+
+## Instagram publishing (approval-gated)
+
+A separate manual GitHub Actions workflow is available at **Actions → Publish approved Instagram queue → Run workflow**. It is deliberately disabled unless all required secrets are configured.
+
+Add these repository secrets under **Settings → Secrets and variables → Actions**:
+
+- `AUTO_PUBLISH_ENABLED`: set to `true` only when you intentionally enable publishing.
+- `META_IG_USER_ID`: the Instagram professional account ID authorized for the Meta Graph API.
+- `META_ACCESS_TOKEN`: a valid Meta access token with the required Instagram publishing permissions.
+
+The account connected to Windsor.ai is not automatically a Meta Graph API token for GitHub Actions. Do not paste access tokens into chat or commit them to this repository.
+
+Before a queue item can publish, its JSON entry must explicitly contain:
+- `verified: true` after checking the real listing, seller, price, stock, terms and affiliate eligibility.
+- `approved: true` after approving the exact caption and creative.
+- A valid `affiliate_url`.
+- A publicly accessible HTTPS `public_image_url` meeting Instagram's media requirements.
+
+New queue entries are always created with `verified: false` and `approved: false`. The publishing workflow is manual-dispatch only; it does not publish drafts automatically. Successful and failed attempts are recorded in `publish_status.json`.
