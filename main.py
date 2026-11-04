@@ -95,7 +95,7 @@ class DarazProductParser(HTMLParser):
         if self.current:
             self.depth -= 1
             if self.depth <= 0:
-                title = re.sub(r"\\s+", " ", html.unescape(self.current["text"])).strip()
+                title = re.sub(r"\s+", " ", html.unescape(self.current["text"])).strip()
                 if len(title) > 12:
                     self.current["title"] = title[:240]
                     self.items.append(self.current)
@@ -132,9 +132,9 @@ def upload_product_image_to_cloudinary(product_url):
         return None, "Cloudinary credentials are not configured."
     try:
         page = fetch_url(product_url, timeout=22).decode("utf-8", errors="ignore")
-        image = re.search(r"<meta[^>]+property=[\\\"']og:image[\\\"'][^>]+content=[\\\"']([^\\\"']+)", page, re.I)
+        image = re.search(r"<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)", page, re.I)
         if not image:
-            image = re.search(r"<meta[^>]+content=[\\\"']([^\\\"']+)[\\\"'][^>]+property=[\\\"']og:image[\\\"']", page, re.I)
+        image = re.search(r"<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)", page, re.I)
         if not image:
             return None, "No public og:image found on the listing page."
         image_url = urljoin(product_url, html.unescape(image.group(1)))
@@ -176,7 +176,7 @@ def make_queries(trends, social):
     prompt = """From these current Pakistan search-interest and public social-discussion signals, extract up to 8 concrete physical product search queries that have a defensible connection to the source posts/topics. Return ONLY valid JSON array of short search queries. Do not invent viral status, demand or products unrelated to the source. If no product connection exists, return []. Signals:
 """ + json.dumps(source, ensure_ascii=False)
     text = gemini_text(prompt)
-    match = re.search(r"\\[[\\s\\S]*\\]", text)
+    match = re.search(r"\[[\s\S]*\]", text)
     if not match:
         raise ValueError("Trend-to-product query response was not valid JSON array.")
     values = json.loads(match.group(0))
@@ -186,9 +186,12 @@ def create_social_copy(product):
     prompt = """Create concise original platform-specific marketing copy for this Daraz Pakistan product candidate.
 Return ONLY JSON with keys facebook_caption, instagram_caption, tiktok_hook, video_script, hashtags (array of 5).
 Do not claim it is viral, best-selling, discounted, tested, or in stock. Do not invent price, features or guarantees.
-Product title: """ + product["title"] + "\\nDaraz listing: " + product["url"]
+    prompt = """Create concise original platform-specific marketing copy for this Daraz Pakistan product candidate.
+Return ONLY JSON with keys facebook_caption, instagram_caption, tiktok_hook, video_script, hashtags (array of 5).
+Do not claim it is viral, best-selling, discounted, tested, or in stock. Do not invent price, features or guarantees.
+Product title: """ + product["title"] + "\nDaraz listing: " + product["url"]
     raw = gemini_text(prompt)
-    match = re.search(r"\\{[\\s\\S]*\\}", raw)
+    match = re.search(r"\{[\s\S]*\}", raw)
     if not match:
         raise ValueError("Social copy response was not valid JSON.")
     data = json.loads(match.group(0))
@@ -226,7 +229,10 @@ def build_report(trends, social, products, errors):
             lines += [
                 f"### Candidate {i}: {p['title']}",
                 f"- Search query: {p['search_query']}",
-                f"- Live Daraz listing: {p['url']}",
+    prompt = """Create concise original platform-specific marketing copy for this Daraz Pakistan product candidate.
+Return ONLY JSON with keys facebook_caption, instagram_caption, tiktok_hook, video_script, hashtags (array of 5).
+Do not claim it is viral, best-selling, discounted, tested, or in stock. Do not invent price, features or guarantees.
+Product title: """ + product["title"] + "\nDaraz listing: " + product["url"]
                 f"- Status: {p['verification']}", ""
             ]
     else:
@@ -240,7 +246,7 @@ def build_report(trends, social, products, errors):
         "", "## Next required verification",
         "Open a candidate listing and verify seller rating/history, current price, reviews, sold count if shown, stock, shipping, returns and affiliate eligibility. Affiliate deeplink generation remains manual until Daraz provides a supported automation route."
     ]
-    return "\\n".join(lines) + "\\n"
+    return "\n".join(lines) + "\n"
 
 def main():
     errors = []
