@@ -13,7 +13,7 @@ from google import genai
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY) if API_KEY else None
-MODEL = "gemini-3.8-flash"
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; TrendHunterAI/1.0; +https://github.com/saithanas111/trend-hunter-ai)"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
 REDDIT_FEEDS = [
@@ -125,7 +125,7 @@ def gemini_text(prompt):
     if not client:
         raise RuntimeError("GEMINI_API_KEY is not configured.")
     last = None
-    for attempt in range(3):
+    for attempt in range(4):
         try:
             response = client.models.generate_content(model=MODEL, contents=prompt)
             if response.text and response.text.strip():
