@@ -14,7 +14,7 @@ from google import genai
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY) if API_KEY else None
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
+MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
 CLOUDINARY_CLOUD_NAME = os.environ.get("CLOUDINARY_CLOUD_NAME")
 CLOUDINARY_API_KEY = os.environ.get("CLOUDINARY_API_KEY")
 CLOUDINARY_API_SECRET = os.environ.get("CLOUDINARY_API_SECRET")
@@ -95,7 +95,7 @@ class DarazProductParser(HTMLParser):
         if self.current:
             self.depth -= 1
             if self.depth <= 0:
-                title = re.sub(r"\s+", " ", html.unescape(self.current["text"])).strip()
+                title = re.sub(r"\\s+", " ", html.unescape(self.current["text"])).strip()
                 if len(title) > 12:
                     self.current["title"] = title[:240]
                     self.items.append(self.current)
@@ -132,9 +132,9 @@ def upload_product_image_to_cloudinary(product_url):
         return None, "Cloudinary credentials are not configured."
     try:
         page = fetch_url(product_url, timeout=22).decode("utf-8", errors="ignore")
-        image = re.search(r"<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)", page, re.I)
+        image = re.search(r"<meta[^>]+property=[\\\"']og:image[\\\"'][^>]+content=[\\\"']([^\\\"']+)", page, re.I)
         if not image:
-            image = re.search(r"<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']", page, re.I)
+            image = re.search(r"<meta[^>]+content=[\\\"']([^\\\"']+)[\\\"'][^>]+property=[\\\"']og:image[\\\"']", page, re.I)
         if not image:
             return None, "No public og:image found on the listing page."
         image_url = urljoin(product_url, html.unescape(image.group(1)))
@@ -176,7 +176,7 @@ def make_queries(trends, social):
     prompt = """From these current Pakistan search-interest and public social-discussion signals, extract up to 8 concrete physical product search queries that have a defensible connection to the source posts/topics. Return ONLY valid JSON array of short search queries. Do not invent viral status, demand or products unrelated to the source. If no product connection exists, return []. Signals:
 """ + json.dumps(source, ensure_ascii=False)
     text = gemini_text(prompt)
-    match = re.search(r"\[[\s\S]*\]", text)
+    match = re.search(r"\\[[\\s\\S]*\\]", text)
     if not match:
         raise ValueError("Trend-to-product query response was not valid JSON array.")
     values = json.loads(match.group(0))
@@ -186,9 +186,9 @@ def create_social_copy(product):
     prompt = """Create concise original platform-specific marketing copy for this Daraz Pakistan product candidate.
 Return ONLY JSON with keys facebook_caption, instagram_caption, tiktok_hook, video_script, hashtags (array of 5).
 Do not claim it is viral, best-selling, discounted, tested, or in stock. Do not invent price, features or guarantees.
-Product title: """ + product["title"] + "\nDaraz listing: " + product["url"]
+Product title: """ + product["title"] + "\\nDaraz listing: " + product["url"]
     raw = gemini_text(prompt)
-    match = re.search(r"\{[\s\S]*\}", raw)
+    match = re.search(r"\\{[\\s\\S]*\\}", raw)
     if not match:
         raise ValueError("Social copy response was not valid JSON.")
     data = json.loads(match.group(0))
@@ -240,7 +240,7 @@ def build_report(trends, social, products, errors):
         "", "## Next required verification",
         "Open a candidate listing and verify seller rating/history, current price, reviews, sold count if shown, stock, shipping, returns and affiliate eligibility. Affiliate deeplink generation remains manual until Daraz provides a supported automation route."
     ]
-    return "\n".join(lines) + "\n"
+    return "\\n".join(lines) + "\\n"
 
 def main():
     errors = []
@@ -263,13 +263,10 @@ def main():
             time.sleep(2)
     except Exception as exc:
         errors.append("AI trend-to-product matching: " + str(exc)[:200])
-    # De-duplicate by listing URL.
     unique = {}
     for item in products:
         unique.setdefault(item["url"], item)
     products = list(unique.values())[:15]
-
-    # Generate copy only for real Daraz listing candidates extracted above.
     for product in products:
         try:
             product["social_copy"] = create_social_copy(product)
@@ -281,7 +278,6 @@ def main():
             product["social_copy_error"] = str(exc)[:200]
             errors.append("Social copy for '" + product["title"][:80] + "': " + str(exc)[:160])
         time.sleep(1)
-
     report = build_report(trends, social, products, errors)
     with open("trend_report.md", "w", encoding="utf-8") as f:
         f.write(report)
