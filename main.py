@@ -132,9 +132,9 @@ def upload_product_image_to_cloudinary(product_url):
         return None, "Cloudinary credentials are not configured."
     try:
         page = fetch_url(product_url, timeout=22).decode("utf-8", errors="ignore")
-        image = re.search(r"<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)", page, re.I)
+        image = re.search(r"<meta[^>]+property=[\"']og:image[\"'][^>]+content=[\"']([^\"']+)", page, re.I)
         if not image:
-        image = re.search(r"<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)", page, re.I)
+            image = re.search(r"<meta[^>]+content=[\"']([^\"']+)[\"'][^>]+property=[\"']og:image[\"']", page, re.I)
         if not image:
             return None, "No public og:image found on the listing page."
         image_url = urljoin(product_url, html.unescape(image.group(1)))
