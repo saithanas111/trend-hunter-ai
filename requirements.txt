@@ -3,3 +3,4 @@ google-genai
 uvicorn
 fastapi
 pydantic
+cloudinary>=1.40.0
