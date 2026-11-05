@@ -6,7 +6,7 @@ from google import genai
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY) if API_KEY else None
-MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.8-flash")
+MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", os.environ.get("GEMINI_MODEL", "gemini-2.5-flash,gemini-2.0-flash")).split(",") if m.strip()]
 CLOUDINARY = {k: os.environ.get(k) for k in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")}
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
@@ -102,16 +102,23 @@ def search_daraz(query, limit=4):
 def gemini_text(prompt):
     if not client:
         raise RuntimeError("GEMINI_API_KEY is missing.")
-    last = None
-    for attempt in range(3):
-        try:
-            response = client.models.generate_content(model=MODEL, contents=prompt)
-            if response.text and response.text.strip(): return response.text.strip()
-            last = "Empty Gemini response"
-        except Exception as e:
-            last = str(e)[:220]
-            if attempt < 2: time.sleep(8*(attempt+1))
-    raise RuntimeError(last or "Gemini request failed")
+    failures = []
+    for model in MODELS:
+        for attempt in range(2):
+            try:
+                response = client.models.generate_content(model=model, contents=prompt)
+                if response.text and response.text.strip():
+                    return response.text.strip()
+                failures.append(f"{model}: empty response")
+            except Exception as e:
+                message = str(e)[:180]
+                failures.append(f"{model}: {message}")
+                # Retry transient rate-limit / service errors once, then try the fallback model.
+                if attempt == 0 and any(code in message.lower() for code in ("503", "429", "unavailable", "high demand", "deadline")):
+                    time.sleep(5)
+                    continue
+                break
+    raise RuntimeError("All configured Gemini models failed: " + " | ".join(failures[-4:]))
 
 def parse_json(text, kind):
     match = re.search(r"\[[\s\S]*\]" if kind == "array" else r"\{[\s\S]*\}", text)
@@ -157,6 +164,7 @@ def upload_product_image_to_cloudinary(product_url):
 def build_report(trends, social, products, errors):
     lines = ["# Trend Hunter AI Report", "",
              "**Generated:** " + datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "",
+             "**AI models attempted:** " + ", ".join(MODELS), "",
              "## Live research status",
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
              f"- Public Reddit hot-post signals fetched: {len(social)}",
