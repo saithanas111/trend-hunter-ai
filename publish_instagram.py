@@ -39,8 +39,17 @@ def main():
 
     with open(QUEUE_PATH, encoding="utf-8") as f:
         queue = json.load(f)
-    with open(STATUS_PATH, encoding="utf-8") as f:
-        status = json.load(f) if os.path.exists(STATUS_PATH) else {}
+    if os.path.exists(STATUS_PATH):
+        try:
+            with open(STATUS_PATH, encoding="utf-8") as f:
+                status = json.load(f)
+            if not isinstance(status, dict):
+                raise ValueError("Publishing status must be a JSON object.")
+        except (OSError, json.JSONDecodeError, ValueError) as exc:
+            print(f"Invalid publishing status file: {exc}", file=sys.stderr)
+            return 2
+    else:
+        status = {}
 
     items = queue.get("items", [])
     published = 0
