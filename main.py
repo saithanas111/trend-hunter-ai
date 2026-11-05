@@ -6,7 +6,7 @@ from google import genai
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY) if API_KEY else None
-MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", os.environ.get("GEMINI_MODEL", "gemini-2.5-flash,gemini-2.0-flash")).split(",") if m.strip()]
+MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", os.environ.get("GEMINI_MODEL", "gemini-2.0-flash,gemini-2.0-flash-lite")).split(",") if m.strip()]
 CLOUDINARY = {k: os.environ.get(k) for k in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")}
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
@@ -85,15 +85,23 @@ def search_daraz(query, limit=4):
         raw = fetch_url(url, 25).decode("utf-8", "ignore")
         parser = ProductParser()
         parser.feed(raw)
+        candidates = list(parser.links)
+        # Daraz pages often embed product cards in JSON rather than ordinary anchor text.
+        # Extract canonical product URLs from that embedded page data as a second path.
+        pattern = r'(?:(?:https?:)?\\?/\\?/www\\.daraz\\.pk)?\\?/products\\?/[^"\\\\<> ]+?-i\\d+-s\\d+\\.html(?:[^"\\\\<> ]*)?'
+        for match in re.findall(pattern, raw, flags=re.I):
+            candidates.append({"url": match.replace("\\\\/", "/"), "title": ""})
         seen, found = set(), []
-        for p in parser.links:
-            link = urljoin("https://www.daraz.pk", p["url"]).split("?")[0]
-            if "daraz.pk" not in link or link in seen:
+        for p in candidates:
+            link = urljoin("https://www.daraz.pk", html.unescape(p["url"])).split("?")[0]
+            if not re.match(r"^https://www\\.daraz\\.pk/products/.+-i\\d+-s\\d+\\.html$", link, re.I) or link in seen:
                 continue
             seen.add(link)
-            found.append({"title": p["title"][:240], "url": link, "search_query": query,
-                          "source": "Daraz Pakistan search page",
-                          "verification": "Listing URL/title extracted only; seller, price, stock, reviews and affiliate eligibility NOT verified."})
+            title = re.sub(r"[-_]+", " ", p.get("title") or "")
+            title = re.sub(r"\\s+", " ", title).strip() or query
+            found.append({"title": title[:240], "url": link, "search_query": query,
+                          "source": "Daraz Pakistan search page embedded product data",
+                          "verification": "Listing URL extracted only; seller, price, stock, reviews and affiliate eligibility NOT verified."})
             if len(found) >= limit: break
         return found, None
     except Exception as e:
