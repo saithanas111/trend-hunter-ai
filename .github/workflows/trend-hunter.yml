@@ -10,6 +10,7 @@ on:
     paths:
       - "main.py"
       - "prepare_queue.py"
+      - "generate_reel.py"
       - "daraz_candidates.json"
       - ".github/workflows/trend-hunter.yml"
   workflow_dispatch:
@@ -37,6 +38,7 @@ jobs:
 
       - name: Run Trend Hunter AI
         env:
+          USER_SELECTED_PRODUCT_MODE: "true"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
