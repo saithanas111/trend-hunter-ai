@@ -47,7 +47,9 @@ jobs:
         run: python prepare_queue.py
 
       - name: Generate vertical product Reels
-        run: python generate_reel.py
+        run: |
+          if ! command -v ffmpeg >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
+          python generate_reel.py
 
       - name: Validate queue safety
         run: python validate_queue.py
