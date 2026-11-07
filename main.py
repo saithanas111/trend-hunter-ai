@@ -112,17 +112,17 @@ def search_daraz(query, limit=4):
         "fitness tracker silent alarm": ["fitness-tracker", "fitness-band"],
         "5000mah mini power bank": ["mini-power-bank", "power-bank-5000mah"],
     }
-    urls = ["https://www.daraz.pk/catalog/?q=" + urllib.parse.quote(query)]
-    urls += ["https://www.daraz.pk/tag/" + tag + "/" for tag in special_tags.get(query.lower(), [slug])]
-    urls += [
+    urls = [
         "https://www.google.com/search?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
         "https://www.bing.com/search?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
+        "https://www.daraz.pk/catalog/?q=" + urllib.parse.quote(query),
     ]
+    urls += ["https://www.daraz.pk/tag/" + tag + "/" for tag in special_tags.get(query.lower(), [slug])[:2]]
     seen, found = set(), []
     diagnostics = []
     for search_url in urls:
         try:
-            raw = fetch_url(search_url, 15).decode("utf-8", "ignore")
+            raw = fetch_url(search_url, 12).decode("utf-8", "ignore")
             parser = ProductParser()
             parser.feed(raw)
             candidates = list(parser.links)
@@ -224,7 +224,7 @@ def make_queries(trends, social, tiktok):
             if query and key not in seen:
                 seen.add(key)
                 queries.append(query)
-            if len(queries) >= 8:
+            if len(queries) >= 4:
                 break
         return queries
     # Use Gemini only as a fallback when no public TikTok product trend signal is available.
