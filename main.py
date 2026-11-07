@@ -278,7 +278,7 @@ def upload_product_image_to_cloudinary(product):
         image = product.get("source_image_url")
         if not image:
             page = fetch_url(product["url"], 20).decode("utf-8", "ignore")
-            m = re.search(r'<meta[^>]+(?:property=["\\']og:image["\\'][^>]+content=["\\']([^"\\']+)|content=["\\']([^"\\']+)["\\'][^>]+property=["\\']og:image)', page, re.I)
+            m = re.search(r"<meta[^>]+(?:property=['\"]og:image['\"][^>]+content=['\"]([^'\"]+)|content=['\"]([^'\"]+)['\"][^>]+property=['\"]og:image)", page, re.I)
             image = (m.group(1) or m.group(2)) if m else None
         if not image: return None, "No public product image found."
         import cloudinary, cloudinary.uploader
