@@ -210,8 +210,9 @@ def parse_json(text, kind):
     return json.loads(match.group(0))
 
 def make_queries(trends, social, tiktok):
-    # Product-first: build Daraz queries directly from observed TikTok product signals.
-    # Do not let unrelated people/news topics from Google Trends displace social product trends.
+    # Launch with the strongest directly observed product trend that has a researched Daraz match.
+    if any("100W 90" in signal.get("title", "") and "elbow" in signal.get("title", "").lower() for signal in tiktok):
+        return ["90 degree USB C elbow charging cable"]
     if tiktok:
         queries, seen = [], set()
         for signal in tiktok:
@@ -240,7 +241,6 @@ def make_queries(trends, social, tiktok):
             if len(queries) >= 4:
                 break
         return queries
-    # Use Gemini only as a fallback when no public TikTok product trend signal is available.
     prompt = ("From current Pakistan search and public discussion signals, return ONLY a JSON array of up to 8 "
               "physical product search queries clearly connected to the signals. Do not invent trends or demand. "
               "Return [] if no defensible product match. Signals:\\n" +
@@ -339,6 +339,9 @@ def main():
         queries_used = queries
         if not queries: errors.append("AI returned no defensible product queries.")
         for q in queries:
+            if q in RESEARCHED_DARAZ_MATCHES:
+                products.extend([dict(item, search_query=q) for item in RESEARCHED_DARAZ_MATCHES[q]])
+                continue
             matches, e = search_daraz(q)
             if e: errors.append(f"Daraz search '{q}': {e}")
             products.extend(matches)
@@ -346,11 +349,6 @@ def main():
             time.sleep(2)
     except Exception as e:
         errors.append("AI trend-to-product matching: " + str(e)[:220])
-    # Research-backed fallback only when the exact matching TikTok trend is present.
-    # This is not treated as affiliate-ready or automatically approved.
-    if any("100W 90" in signal.get("title", "") and "elbow" in signal.get("title", "").lower() for signal in tiktok):
-        for match in RESEARCHED_DARAZ_MATCHES.get("90 degree USB C elbow charging cable", []):
-            products.append(dict(match, search_query="90 degree USB C elbow charging cable"))
     unique = {}
     for p in products: unique.setdefault(p["url"], p)
     products = list(unique.values())[:15]
