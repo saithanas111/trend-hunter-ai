@@ -247,12 +247,12 @@ def create_social_copy(product):
 
 
 def fallback_social_copy(product):
-    title = re.sub(r"\\s+", " ", product.get("title", "Daraz product")).strip()[:180]
+    title = re.sub(r"\s+", " ", product.get("title", "Daraz product")).strip()[:180]
     safe_line = "Check the product details, compatibility and latest availability on the listing before ordering."
     hashtags = ["#DarazPakistan", "#TrendingFinds", "#OnlineShopping", "#ProductFinds", "#Pakistan"]
     return {
-        "facebook_caption": f"{title}\\n\\n{safe_line}",
-        "instagram_caption": f"{title}\\n\\nExplore the listing for full details.\\n{safe_line}",
+        "facebook_caption": f"{title}\n\n{safe_line}",
+        "instagram_caption": f"{title}\n\nExplore the listing for full details.\n{safe_line}",
         "tiktok_hook": f"Looking for {title.lower()}?",
         "video_script": f"Show the product clearly. On-screen text: {title}. End card: Check the listing for details and compatibility.",
         "hashtags": hashtags,
