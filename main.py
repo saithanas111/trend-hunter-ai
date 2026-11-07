@@ -113,6 +113,8 @@ def search_daraz(query, limit=4):
         "5000mah mini power bank": ["mini-power-bank", "power-bank-5000mah"],
     }
     urls = [
+        "https://html.duckduckgo.com/html/?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
+        "https://search.brave.com/search?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
         "https://www.google.com/search?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
         "https://www.bing.com/search?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
         "https://www.daraz.pk/catalog/?q=" + urllib.parse.quote(query),
