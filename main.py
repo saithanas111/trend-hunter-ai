@@ -1,4 +1,6 @@
 import os, re, json, time, html, urllib.parse, urllib.request, xml.etree.ElementTree as ET
+from pathlib import Path
+from io import BytesIO
 from html.parser import HTMLParser
 from urllib.parse import urljoin
 from datetime import datetime, timezone
@@ -272,24 +274,48 @@ def fallback_social_copy(product):
     }
 
 def upload_product_image_to_cloudinary(product):
-    if not all(CLOUDINARY.values()):
-        return None, "Cloudinary credentials missing."
-    try:
-        image = product.get("source_image_url")
-        if not image:
+    image = product.get("source_image_url")
+    if not image:
+        try:
             page = fetch_url(product["url"], 20).decode("utf-8", "ignore")
             m = re.search(r"<meta[^>]+(?:property=['\"]og:image['\"][^>]+content=['\"]([^'\"]+)|content=['\"]([^'\"]+)['\"][^>]+property=['\"]og:image)", page, re.I)
             image = (m.group(1) or m.group(2)) if m else None
-        if not image: return None, "No public product image found."
-        import cloudinary, cloudinary.uploader
-        cloudinary.config(cloud_name=CLOUDINARY["CLOUDINARY_CLOUD_NAME"],
-                          api_key=CLOUDINARY["CLOUDINARY_API_KEY"],
-                          api_secret=CLOUDINARY["CLOUDINARY_API_SECRET"], secure=True)
-        result = cloudinary.uploader.upload(html.unescape(image),
-                                             folder="trend-hunter/products", resource_type="image", format="jpg")
-        return result.get("secure_url"), None
+        except Exception as e:
+            return None, "Could not read product page image: " + str(e)[:160]
+    if not image:
+        return None, "No public product image found."
+    cloudinary_error = None
+    if all(CLOUDINARY.values()):
+        try:
+            import cloudinary, cloudinary.uploader
+            cloudinary.config(cloud_name=CLOUDINARY["CLOUDINARY_CLOUD_NAME"],
+                              api_key=CLOUDINARY["CLOUDINARY_API_KEY"],
+                              api_secret=CLOUDINARY["CLOUDINARY_API_SECRET"], secure=True)
+            result = cloudinary.uploader.upload(html.unescape(image),
+                                                 folder="trend-hunter/products", resource_type="image", format="jpg")
+            if result.get("secure_url"):
+                return result["secure_url"], None
+        except Exception as e:
+            cloudinary_error = str(e)[:160]
+    # Public-repository fallback: convert to JPEG and commit under assets/products.
+    try:
+        from PIL import Image
+        image_bytes = fetch_url(html.unescape(image), 25)
+        picture = Image.open(BytesIO(image_bytes)).convert("RGB")
+        product_id = re.search(r"-i(\d+)", product.get("url", ""))
+        filename = "daraz-" + (product_id.group(1) if product_id else re.sub(r"[^a-z0-9]+", "-", product.get("title", "product").lower())[:48]) + ".jpg"
+        relative = Path("assets") / "products" / filename
+        relative.parent.mkdir(parents=True, exist_ok=True)
+        picture.save(relative, format="JPEG", quality=92, optimize=True)
+        public_url = "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/" + relative.as_posix()
+        note = "JPEG stored in public GitHub assets for social publishing."
+        if cloudinary_error:
+            note += " Cloudinary fallback used: " + cloudinary_error
+        elif not all(CLOUDINARY.values()):
+            note += " Cloudinary credentials were not configured."
+        return public_url, note
     except Exception as e:
-        return None, str(e)[:200]
+        return None, "Image hosting failed: " + str(e)[:180]
 
 def build_report(trends, social, tiktok, products, errors, queries_used=None):
     lines = ["# Trend Hunter AI Report", "",
