@@ -103,33 +103,48 @@ class ProductParser(HTMLParser):
                 self.capture, self.current, self.depth = False, None, 0
 
 def search_daraz(query, limit=4):
-    url = "https://www.daraz.pk/catalog/?q=" + urllib.parse.quote(query)
-    try:
-        raw = fetch_url(url, 25).decode("utf-8", "ignore")
-        parser = ProductParser()
-        parser.feed(raw)
-        candidates = list(parser.links)
-        # Daraz pages often embed product cards in JSON rather than ordinary anchor text.
-        # Extract canonical product URLs from that embedded page data as a second path.
-        normalized = raw.replace("\\/", "/").replace("\\u002F", "/")
-        pattern = r'(?:(?:https?:)?//www\.daraz\.pk)?/products/[^"\\<>\s]+?-i\d+(?:-s\d+)?\.html'
-        for match in re.findall(pattern, normalized, flags=re.I):
-            candidates.append({"url": match, "title": ""})
-        seen, found = set(), []
-        for p in candidates:
-            link = urljoin("https://www.daraz.pk", html.unescape(p["url"])).split("?")[0]
-            if not re.match(r"^https://www\.daraz\.pk/products/.+-i\d+(?:-s\d+)?\.html$", link, re.I) or link in seen:
-                continue
-            seen.add(link)
-            title = re.sub(r"[-_]+", " ", p.get("title") or "")
-            title = re.sub(r"\\s+", " ", title).strip() or query
-            found.append({"title": title[:240], "url": link, "search_query": query,
-                          "source": "Daraz Pakistan search page embedded product data",
-                          "verification": "Listing URL extracted only; seller, price, stock, reviews and affiliate eligibility NOT verified."})
-            if len(found) >= limit: break
-        return found, None
-    except Exception as e:
-        return [], str(e)[:200]
+    slug = re.sub(r"[^a-z0-9]+", "-", query.lower()).strip("-")
+    special_tags = {
+        "mini digital vlogging camera": ["mini-vlogger-camera", "mini-digital-camera-keychain"],
+        "mini keychain digital camera": ["mini-digital-camera-keychain", "mini-keychain-cameras"],
+        "tiktok scrolling remote control": ["tiktok-scroll-remote", "bluetooth-tiktok-remote-control"],
+        "90 degree usb c elbow charging cable": ["usb-c-cable-90-degree", "usb-c-to-c-angled-cable", "90-degree-micro-usb-cable"],
+        "fitness tracker silent alarm": ["fitness-tracker", "fitness-band"],
+        "5000mah mini power bank": ["mini-power-bank", "power-bank-5000mah"],
+    }
+    urls = ["https://www.daraz.pk/catalog/?q=" + urllib.parse.quote(query)]
+    urls += ["https://www.daraz.pk/tag/" + tag + "/" for tag in special_tags.get(query.lower(), [slug])]
+    seen, found = set(), []
+    diagnostics = []
+    for search_url in urls:
+        try:
+            raw = fetch_url(search_url, 20).decode("utf-8", "ignore")
+            parser = ProductParser()
+            parser.feed(raw)
+            candidates = list(parser.links)
+            normalized = raw.replace("\\/", "/").replace("\\u002F", "/")
+            pattern = r'(?:(?:https?:)?//www\.daraz\.pk)?/products/[^"\\<>\s]+?-i\d+(?:-s\d+)?\.html'
+            embedded = re.findall(pattern, normalized, flags=re.I)
+            candidates += [{"url": u, "title": ""} for u in embedded]
+            diagnostics.append(f"{search_url}: {len(raw)} bytes, {len(parser.links)} anchor links, {len(embedded)} embedded URLs")
+            for p in candidates:
+                link = urljoin("https://www.daraz.pk", html.unescape(p["url"])).split("?")[0]
+                if not re.match(r"^https://www\.daraz\.pk/products/.+-i\d+(?:-s\d+)?\.html$", link, re.I) or link in seen:
+                    continue
+                seen.add(link)
+                title = re.sub(r"[-_]+", " ", p.get("title") or "")
+                title = re.sub(r"\s+", " ", title).strip() or query
+                found.append({"title": title[:240], "url": link, "search_query": query,
+                              "source": "Daraz Pakistan public catalog/tag page",
+                              "verification": "Listing URL extracted only; seller, price, stock, reviews and affiliate eligibility NOT verified."})
+                if len(found) >= limit:
+                    return found, None
+        except Exception as e:
+            diagnostics.append(f"{search_url}: {str(e)[:120]}")
+        time.sleep(1)
+    if not found:
+        return [], "No Daraz product URLs extracted. " + " | ".join(diagnostics)
+    return found, None
 
 def available_gemini_models():
     if MODELS:
