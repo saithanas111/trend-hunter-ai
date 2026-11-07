@@ -70,7 +70,7 @@ def build_poster(item, image_path, poster_path):
 
     draw = ImageDraw.Draw(canvas)
     draw.rounded_rectangle((70, 1480, 1010, 1790), radius=42, fill=(12, 24, 44, 230))
-    sub = "Right-angle design for comfortable charging while using your phone."
+    sub = "Choose the compatible cable option for your Xiaomi device."
     for i, line in enumerate(wrap(draw, sub, font(38), 820)[:2]):
         draw.text((125, 1540 + i * 54), line, font=font(38), fill=(255, 255, 255, 255))
     draw.text((125, 1695), "CHECK DETAILS & COMPATIBILITY", font=font(34, True), fill=(255, 210, 90, 255))
