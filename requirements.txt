@@ -4,3 +4,4 @@ uvicorn
 fastapi
 pydantic
 cloudinary>=1.40.0
+Pillow>=10.0.0
