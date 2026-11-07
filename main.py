@@ -389,11 +389,17 @@ def main():
     for p in products: unique.setdefault(p["url"], p)
     products = list(unique.values())[:15]
     for p in products:
-        try:
-            p["social_copy"] = create_social_copy(p)
-        except Exception as e:
+        # In the user-selected launch product mode, keep the run fast and reliable:
+        # use conservative deterministic copy instead of waiting on a second Gemini call.
+        if os.environ.get("USER_SELECTED_PRODUCT_MODE", "true").lower() == "true":
             p["social_copy"] = fallback_social_copy(p)
-            p["social_copy_error"] = str(e)[:200]
+            p["social_copy_note"] = "Deterministic safe copy used for user-selected launch product."
+        else:
+            try:
+                p["social_copy"] = create_social_copy(p)
+            except Exception as e:
+                p["social_copy"] = fallback_social_copy(p)
+                p["social_copy_error"] = str(e)[:200]
         image_url, image_error = upload_product_image_to_cloudinary(p)
         p["public_image_url"] = image_url or ""
         if image_error: p["image_upload_error"] = image_error
