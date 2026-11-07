@@ -31,7 +31,7 @@ def main():
             "video_script": copy.get("video_script", ""),
             "hashtags": copy.get("hashtags", []),
             "affiliate_url": "",
-            "public_image_url": "",
+            "public_image_url": product.get("public_image_url", ""),
             "verified": False,
             "approved": False,
             "affiliate_status": "manual_generation_required_no_supported_api_confirmed",
