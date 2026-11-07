@@ -1,35 +1,35 @@
 {
-  "generated_at": "2026-11-07T12:40:56.757147+00:00",
+  "generated_at": "2026-11-07T16:53:43.170Z",
   "count": 1,
-  "notice": "User-confirmed Xiaomi Turbo Charger Cable affiliate link. Product assets must match this listing before publishing.",
+  "notice": "User-approved Xiaomi cable. Old Essager image/video must never be used; regenerate matching Xiaomi product image and Reel before publishing.",
   "items": [
     {
       "id": "1",
       "opportunity": 1,
-      "product": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable",
-      "daraz_listing_url": "https://s.daraz.pk/s.230Dt?cc",
-      "search_query": "Xiaomi 33W 67W 120W Turbo Charger Cable",
-      "listing_verification": "User confirmed this affiliate shortlink is for the Daraz listing shown in their screenshot: Rs. 527, 4.9 rating (523 ratings), 2.4K sold. Listing title claims 120W/67W/33W compatibility. Seller authenticity and variant-specific compatibility are not independently verified.",
-      "facebook_caption": "Charge your Xiaomi device with this Turbo Charger Cable, listed with 33W, 67W and 120W options. Check the selected variant and your device compatibility before ordering.",
-      "instagram_caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your device compatibility and choose the right variant before ordering.",
-      "caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your device compatibility and choose the right variant before ordering.",
+      "product": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A",
+      "daraz_listing_url": "https://www.daraz.pk/products/13-1211s-10-10-10s-9-100-w-120w-33w-67w-120w-6a-i491483422.html",
+      "search_query": "Xiaomi 120W 67W 33W Turbo charger cable",
+      "listing_verification": "User confirmed their affiliate shortlink is for the Xiaomi Turbo cable shown in their Daraz screenshot (Rs. 527, 4.9 rating, 523 ratings, 2.4K sold). Public Daraz search snapshot 2026-11-07 shows a matching E-Z Cart listing at Rs. 549, 4.9/5 from 523 ratings and 2.4K sold; live price may vary. Product authenticity and exact device compatibility are not independently verified.",
+      "facebook_caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and selected variant before ordering. Daraz link: https://s.daraz.pk/s.230Dt?cc",
+      "instagram_caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and choose the compatible variant before ordering. #Xiaomi #TurboCharging #TypeCCable #DarazPK #TechAccessories",
+      "caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and choose the compatible variant before ordering. #Xiaomi #TurboCharging #TypeCCable #DarazPK #TechAccessories",
       "tiktok_hook": "Need a replacement cable for your Xiaomi fast charger?",
-      "video_script": "Looking for a Xiaomi charging cable? This Daraz listing offers 33W, 67W and 120W options. Check your charger model and select the compatible cable before ordering.",
+      "video_script": "Looking for a Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and select the compatible cable before ordering.",
       "hashtags": [
-        "#Essager",
+        "#Xiaomi",
+        "#TurboCharging",
         "#TypeCCable",
-        "#FastCharging",
-        "#TechAccessories",
-        "#DarazPK"
+        "#DarazPK",
+        "#TechAccessories"
       ],
       "affiliate_url": "https://s.daraz.pk/s.230Dt?cc",
-      "public_image_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/products/daraz-1954838080.jpg",
-      "public_video_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/videos/daraz-1954838080.mp4",
-      "video_cover_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/videos/daraz-1954838080-cover.jpg",
+      "public_image_url": "https://img.drz.lazcdn.com/g/kf/S852f26d5ebd04777b9604812e87f54c0I.jpg_720x720q80.jpg_.webp",
+      "public_video_url": "",
+      "video_cover_url": "",
       "verified": true,
       "approved": true,
       "affiliate_status": "user_supplied_affiliate_link_listing_confirmed_by_user",
-      "publishing_status": "ready_for_asset_refresh",
+      "publishing_status": "awaiting_xiaomi_asset_generation",
       "approval_required": false
     }
   ]
