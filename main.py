@@ -36,6 +36,17 @@ def fetch_google_trends():
         return [], str(e)[:200]
 
 
+
+RESEARCHED_DARAZ_MATCHES = {
+    "90 degree USB C elbow charging cable": [{
+        "title": "Essager 7A USB Type C Cable 90 Degree For 100W Fast Charging Cord",
+        "url": "https://www.daraz.pk/products/7-90-100-i1954838080.html",
+        "source_image_url": "https://img.drz.lazcdn.com/g/kf/S84b4d1b7bff947af99284def5cb4a3a0Y.jpg_720x720q80.jpg_.webp",
+        "source": "Daraz Pakistan public product and category pages; manually researched current match",
+        "verification": "External Daraz snapshot 2026-11-07: Rs 1,320; 5.0/5 from 32 ratings; about 1.0K sold; seller Buy More Save More Store; seller positive rating 87%; ship-on-time 100%. Listing stock and affiliate eligibility still require live/account verification.",
+    }]
+}
+
 def fetch_tiktok_trend_signals():
     """Read public TikTok video trend summaries from a third-party tracker; not Pakistan-specific."""
     try:
@@ -260,19 +271,21 @@ def fallback_social_copy(product):
         "hashtags": hashtags,
     }
 
-def upload_product_image_to_cloudinary(product_url):
+def upload_product_image_to_cloudinary(product):
     if not all(CLOUDINARY.values()):
         return None, "Cloudinary credentials missing."
     try:
-        page = fetch_url(product_url, 20).decode("utf-8", "ignore")
-        m = re.search(r'<meta[^>]+(?:property=["\']og:image["\'][^>]+content=["\']([^"\']+)|content=["\']([^"\']+)["\'][^>]+property=["\']og:image)', page, re.I)
-        image = (m.group(1) or m.group(2)) if m else None
-        if not image: return None, "No public og:image found."
+        image = product.get("source_image_url")
+        if not image:
+            page = fetch_url(product["url"], 20).decode("utf-8", "ignore")
+            m = re.search(r'<meta[^>]+(?:property=["\\']og:image["\\'][^>]+content=["\\']([^"\\']+)|content=["\\']([^"\\']+)["\\'][^>]+property=["\\']og:image)', page, re.I)
+            image = (m.group(1) or m.group(2)) if m else None
+        if not image: return None, "No public product image found."
         import cloudinary, cloudinary.uploader
         cloudinary.config(cloud_name=CLOUDINARY["CLOUDINARY_CLOUD_NAME"],
                           api_key=CLOUDINARY["CLOUDINARY_API_KEY"],
                           api_secret=CLOUDINARY["CLOUDINARY_API_SECRET"], secure=True)
-        result = cloudinary.uploader.upload(urljoin(product_url, html.unescape(image)),
+        result = cloudinary.uploader.upload(html.unescape(image),
                                              folder="trend-hunter/products", resource_type="image")
         return result.get("secure_url"), None
     except Exception as e:
@@ -333,6 +346,11 @@ def main():
             time.sleep(2)
     except Exception as e:
         errors.append("AI trend-to-product matching: " + str(e)[:220])
+    # Research-backed fallback only when the exact matching TikTok trend is present.
+    # This is not treated as affiliate-ready or automatically approved.
+    if any("100W 90" in signal.get("title", "") and "elbow" in signal.get("title", "").lower() for signal in tiktok):
+        for match in RESEARCHED_DARAZ_MATCHES.get("90 degree USB C elbow charging cable", []):
+            products.append(dict(match, search_query="90 degree USB C elbow charging cable"))
     unique = {}
     for p in products: unique.setdefault(p["url"], p)
     products = list(unique.values())[:15]
@@ -342,7 +360,7 @@ def main():
         except Exception as e:
             p["social_copy"] = fallback_social_copy(p)
             p["social_copy_error"] = str(e)[:200]
-        image_url, image_error = upload_product_image_to_cloudinary(p["url"])
+        image_url, image_error = upload_product_image_to_cloudinary(p)
         p["public_image_url"] = image_url or ""
         if image_error: p["image_upload_error"] = image_error
     report = build_report(trends, social, tiktok, products, errors, queries_used)
