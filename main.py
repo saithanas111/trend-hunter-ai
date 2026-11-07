@@ -114,19 +114,23 @@ def search_daraz(query, limit=4):
     }
     urls = ["https://www.daraz.pk/catalog/?q=" + urllib.parse.quote(query)]
     urls += ["https://www.daraz.pk/tag/" + tag + "/" for tag in special_tags.get(query.lower(), [slug])]
+    urls += [
+        "https://www.google.com/search?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
+        "https://www.bing.com/search?q=" + urllib.parse.quote("site:daraz.pk/products " + query),
+    ]
     seen, found = set(), []
     diagnostics = []
     for search_url in urls:
         try:
-            raw = fetch_url(search_url, 20).decode("utf-8", "ignore")
+            raw = fetch_url(search_url, 15).decode("utf-8", "ignore")
             parser = ProductParser()
             parser.feed(raw)
             candidates = list(parser.links)
-            normalized = raw.replace("\\/", "/").replace("\\u002F", "/")
+            normalized = urllib.parse.unquote(html.unescape(raw)).replace("\\/", "/").replace("\\u002F", "/")
             pattern = r'(?:(?:https?:)?//www\.daraz\.pk)?/products/[^"\\<>\s]+?-i\d+(?:-s\d+)?\.html'
             embedded = re.findall(pattern, normalized, flags=re.I)
             candidates += [{"url": u, "title": ""} for u in embedded]
-            diagnostics.append(f"{search_url}: {len(raw)} bytes, {len(parser.links)} anchor links, {len(embedded)} embedded URLs")
+            diagnostics.append(f"{search_url.split('/')[2]}: {len(raw)} bytes, {len(parser.links)} anchor links, {len(embedded)} embedded URLs, /products/ tokens={raw.count('/products/')}")
             for p in candidates:
                 link = urljoin("https://www.daraz.pk", html.unescape(p["url"])).split("?")[0]
                 if not re.match(r"^https://www\.daraz\.pk/products/.+-i\d+(?:-s\d+)?\.html$", link, re.I) or link in seen:
@@ -135,12 +139,12 @@ def search_daraz(query, limit=4):
                 title = re.sub(r"[-_]+", " ", p.get("title") or "")
                 title = re.sub(r"\s+", " ", title).strip() or query
                 found.append({"title": title[:240], "url": link, "search_query": query,
-                              "source": "Daraz Pakistan public catalog/tag page",
+                              "source": "Daraz Pakistan listing or indexed public search result",
                               "verification": "Listing URL extracted only; seller, price, stock, reviews and affiliate eligibility NOT verified."})
                 if len(found) >= limit:
                     return found, None
         except Exception as e:
-            diagnostics.append(f"{search_url}: {str(e)[:120]}")
+            diagnostics.append(f"{search_url.split('/')[2]}: {str(e)[:120]}")
         time.sleep(1)
     if not found:
         return [], "No Daraz product URLs extracted. " + " | ".join(diagnostics)
