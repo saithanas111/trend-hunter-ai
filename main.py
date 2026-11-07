@@ -10,6 +10,7 @@ MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", os.environ.get("GEM
 CLOUDINARY = {k: os.environ.get(k) for k in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")}
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
+TIKTOK_TRENDS_URL = "https://viralcatcher.com/trending/phones-electronics"
 REDDIT_FEEDS = [
     "https://www.reddit.com/r/gadgets/hot.json?limit=15",
     "https://www.reddit.com/r/DidntKnowIWantedThat/hot.json?limit=15",
@@ -31,6 +32,28 @@ def fetch_google_trends():
             if title:
                 out.append({"topic": title, "approx_traffic": traffic or None, "source": "Google Trends Pakistan RSS"})
         return out, None
+    except Exception as e:
+        return [], str(e)[:200]
+
+
+def fetch_tiktok_trend_signals():
+    """Read public TikTok video trend summaries from a third-party tracker; not Pakistan-specific."""
+    try:
+        raw = fetch_url(TIKTOK_TRENDS_URL, 25).decode("utf-8", "ignore")
+        plain = html.unescape(re.sub(r"<[^>]+>", " ", raw))
+        plain = re.sub(r"\s+", " ", plain)
+        pattern = re.compile(
+            r"Number\s+\d+\s+(.*?)\s+(?:\+[\d,.]+[KMB]\s+views(?:\s+in\s+\d+h)?\s+)?"
+            r"([\d,.]+[KMB]\s+total views)\s+(.{1,100}?)\s+Posted\s+([A-Za-z]+\s+\d+)",
+            re.I
+        )
+        out = []
+        for match in pattern.finditer(plain):
+            title, views, creator, posted = [re.sub(r"\s+", " ", x).strip() for x in match.groups()]
+            out.append({"title": title[:260], "total_views": views, "creator": creator[:100],
+                        "posted": posted, "source": "ViralCatcher public TikTok trend tracker",
+                        "source_url": TIKTOK_TRENDS_URL, "region": "TikTok Shop tracker; not Pakistan-specific"})
+        return out[:10], None
     except Exception as e:
         return [], str(e)[:200]
 
@@ -154,11 +177,13 @@ def parse_json(text, kind):
     if not match: raise ValueError("Gemini did not return valid JSON.")
     return json.loads(match.group(0))
 
-def make_queries(trends, social):
+def make_queries(trends, social, tiktok):
     prompt = ("From these current Pakistan search and public discussion signals, return ONLY a JSON array of up to 8 "
               "physical product search queries clearly connected to the signals. Do not invent trends or demand. "
               "Return [] if no defensible product match. Signals:\n" +
-              json.dumps({"google_trends": trends[:15], "social_posts": social[:15]}, ensure_ascii=False))
+              "Use TikTok tracked product signals as trend evidence, but remember they are global and not Pakistan-specific. "
+              "Return [] rather than forcing a match. Signals:\n" +
+              json.dumps({"google_trends": trends[:15], "social_posts": social[:15], "tiktok_product_signals": tiktok[:10]}, ensure_ascii=False))
     vals = parse_json(gemini_text(prompt), "array")
     return [str(x).strip()[:100] for x in vals if str(x).strip()][:8]
 
@@ -190,13 +215,14 @@ def upload_product_image_to_cloudinary(product_url):
     except Exception as e:
         return None, str(e)[:200]
 
-def build_report(trends, social, products, errors, queries_used=None):
+def build_report(trends, social, tiktok, products, errors, queries_used=None):
     lines = ["# Trend Hunter AI Report", "",
              "**Generated:** " + datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "",
              "**AI models attempted:** " + ", ".join(MODELS), "",
              "## Live research status",
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
              f"- Public Reddit hot-post signals fetched: {len(social)}",
+             f"- Public TikTok trend tracker product signals fetched: {len(tiktok)} (global, not Pakistan-specific)",
              f"- Daraz listing candidates extracted: {len(products)}",
              f"- Product images uploaded to Cloudinary: {sum(bool(p.get('public_image_url')) for p in products)}",
              "- Trend/search signals are not proof of Pakistan sales.",
@@ -209,6 +235,8 @@ def build_report(trends, social, products, errors, queries_used=None):
         lines += ["## Google Trends Pakistan signals"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
     if social:
         lines += ["## Public social discussion signals"] + [f"- [{p.get('community')}] {p['title']} (score {p.get('score')}, comments {p.get('comments')}) {p['url']}" for p in social[:12]] + [""]
+    if tiktok:
+        lines += ["## TikTok product trend signals (global tracker; not Pakistan-specific)"] + [f"- {p['title']} — {p['total_views']} — {p['creator']} — posted {p['posted']} — {p['source_url']}" for p in tiktok[:10]] + [""]
     if products:
         lines += ["## Daraz candidates"]
         for i,p in enumerate(products,1):
@@ -225,11 +253,13 @@ def main():
     trends, err = fetch_google_trends()
     if err: errors.append("Google Trends: " + err)
     social, social_errors = fetch_social_signals()
-    errors += ["Social feed: " + e for e in social_errors[:3]]
+    errors += ["Reddit feed: " + e for e in social_errors[:3]]
+    tiktok, tiktok_error = fetch_tiktok_trend_signals()
+    if tiktok_error: errors.append("TikTok trend tracker: " + tiktok_error)
     products = []
     queries_used = []
     try:
-        queries = make_queries(trends, social)
+        queries = make_queries(trends, social, tiktok)
         queries_used = queries
         if not queries: errors.append("AI returned no defensible product queries.")
         for q in queries:
@@ -251,7 +281,7 @@ def main():
         image_url, image_error = upload_product_image_to_cloudinary(p["url"])
         p["public_image_url"] = image_url or ""
         if image_error: p["image_upload_error"] = image_error
-    report = build_report(trends, social, products, errors, queries_used)
+    report = build_report(trends, social, tiktok, products, errors, queries_used)
     if queries_used:
         print("Daraz search queries: " + " | ".join(queries_used))
     with open("trend_report.md","w",encoding="utf-8") as f: f.write(report)
