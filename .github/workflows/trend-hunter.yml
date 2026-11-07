@@ -2,7 +2,7 @@ name: Trend Hunter AI
 
 concurrency:
   group: trend-hunter-main
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 on:
   push:
