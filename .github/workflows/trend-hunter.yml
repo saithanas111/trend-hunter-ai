@@ -58,7 +58,7 @@ jobs:
         run: |
           git config user.name "Trend Hunter AI"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reports/
+          git add reports/ assets/
           git diff --cached --quiet || git commit -m "Save Trend Hunter report history"
           git stash push --include-untracked -m "generated queue files"
           git pull --rebase origin main
