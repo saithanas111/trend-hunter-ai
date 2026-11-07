@@ -178,14 +178,41 @@ def parse_json(text, kind):
     return json.loads(match.group(0))
 
 def make_queries(trends, social, tiktok):
-    prompt = ("From these live search and social product signals, return ONLY a JSON array of up to 8 "
-              "physical product search queries clearly connected to one or more observed product trends. "
-              "Do not invent trends or demand. TikTok tracker signals are global, not Pakistan-specific; "
-              "use them as product-discovery signals, then match only to actual Daraz Pakistan listings. "
-              "Google Trends Pakistan and public discussion signals are additional context. "
+    # Product-first: build Daraz queries directly from observed TikTok product signals.
+    # Do not let unrelated people/news topics from Google Trends displace social product trends.
+    if tiktok:
+        queries, seen = [], set()
+        for signal in tiktok:
+            title = signal.get("title", "").lower()
+            if "remote control" in title and ("scroll" in title or "tiktok" in title or "page turn" in title):
+                query = "TikTok scrolling remote control"
+            elif "usb-c" in title or "usb c" in title or ("elbow" in title and "cable" in title):
+                query = "90 degree USB C elbow charging cable"
+            elif "keychain" in title and "camera" in title:
+                query = "mini keychain digital camera"
+            elif "camera" in title or "vlogging" in title:
+                query = "mini digital vlogging camera"
+            elif "fitness tracker" in title:
+                query = "fitness tracker silent alarm"
+            elif "power bank" in title or "portable charger" in title:
+                query = "5000mAh mini power bank"
+            elif "dvd player" in title:
+                query = "portable DVD player"
+            else:
+                words = re.findall(r"[a-z0-9]+", title)
+                query = " ".join(words[:7])
+            key = query.casefold()
+            if query and key not in seen:
+                seen.add(key)
+                queries.append(query)
+            if len(queries) >= 8:
+                break
+        return queries
+    # Use Gemini only as a fallback when no public TikTok product trend signal is available.
+    prompt = ("From current Pakistan search and public discussion signals, return ONLY a JSON array of up to 8 "
+              "physical product search queries clearly connected to the signals. Do not invent trends or demand. "
               "Return [] if no defensible product match. Signals:\\n" +
-              json.dumps({"google_trends_pk": trends[:15], "reddit_public_posts": social[:15],
-                          "tiktok_product_signals_global": tiktok[:10]}, ensure_ascii=False))
+              json.dumps({"google_trends_pk": trends[:15], "reddit_public_posts": social[:15]}, ensure_ascii=False))
     vals = parse_json(gemini_text(prompt), "array")
     return [str(x).strip()[:100] for x in vals if str(x).strip()][:8]
 
