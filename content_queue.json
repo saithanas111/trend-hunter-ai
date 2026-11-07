@@ -1,6 +1,36 @@
 {
-  "generated_at": "2026-11-07T10:56:14.739171+00:00",
-  "count": 0,
+  "generated_at": "2026-11-07T11:15:24.121252+00:00",
+  "count": 1,
   "notice": "Drafts only. Every item starts unverified and unapproved. Publishing requires a verified product, approved post, affiliate URL, public image URL and enabled publishing secrets.",
-  "items": []
+  "items": [
+    {
+      "id": "1",
+      "opportunity": 1,
+      "product": "Essager 7A USB Type C Cable 90 Degree For 100W Fast Charging Cord",
+      "daraz_listing_url": "https://www.daraz.pk/products/7-90-100-i1954838080.html",
+      "search_query": "90 degree USB C elbow charging cable",
+      "listing_verification": "Category-level match to the viral TikTok 90-degree 100W cable trend (not the same brand/model). Daraz snapshot 2026-11-07: Rs 1,320; 5.0/5 from 32 ratings; about 1.0K sold; seller Buy More Save More Store; seller positive rating 87%; ship-on-time 100%; 14-day easy return; no warranty. Listing stock and affiliate eligibility still require live/account verification.",
+      "facebook_caption": "Upgrade your setup with the Essager 90-Degree USB Type-C Cable. Designed for comfortable handling while charging, supporting up to 7A and 100W fast charging. Available on Daraz.",
+      "instagram_caption": "Charge comfortably while gaming or streaming. 📱⚡ The Essager 90-Degree USB Type-C Cable supports up to 100W fast charging with a 7A rating. Check it out on Daraz!",
+      "caption": "Charge comfortably while gaming or streaming. 📱⚡ The Essager 90-Degree USB Type-C Cable supports up to 100W fast charging with a 7A rating. Check it out on Daraz!",
+      "tiktok_hook": "Tired of straight charging cables getting in the way while you hold your phone?",
+      "video_script": "Check out the Essager 90-Degree USB Type-C Cable. Its right-angle connector makes holding your device comfortable while charging, supporting up to 100W power delivery. Search for it on Daraz today.",
+      "hashtags": [
+        "#Daraz",
+        "#Essager",
+        "#TypeCCable",
+        "#FastCharging",
+        "#TechAccessories"
+      ],
+      "affiliate_url": "",
+      "public_image_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/products/daraz-1954838080.jpg",
+      "public_video_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/videos/daraz-1954838080.mp4",
+      "video_cover_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/videos/daraz-1954838080-cover.jpg",
+      "verified": false,
+      "approved": false,
+      "affiliate_status": "manual_generation_required_no_supported_api_confirmed",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    }
+  ]
 }
