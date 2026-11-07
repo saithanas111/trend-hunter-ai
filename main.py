@@ -190,7 +190,7 @@ def upload_product_image_to_cloudinary(product_url):
     except Exception as e:
         return None, str(e)[:200]
 
-def build_report(trends, social, products, errors):
+def build_report(trends, social, products, errors, queries_used=None):
     lines = ["# Trend Hunter AI Report", "",
              "**Generated:** " + datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "",
              "**AI models attempted:** " + ", ".join(MODELS), "",
@@ -203,6 +203,8 @@ def build_report(trends, social, products, errors):
              "- Daraz listing extraction does not verify seller quality, price, stock, reviews, delivery or affiliate eligibility.",
              "- Affiliate deeplinks are not generated; no supported Daraz affiliate API has been confirmed.",
              "- This workflow does not publish social posts.", ""]
+    if queries_used:
+        lines += ["## Daraz search queries generated from live signals"] + [f"- {q}" for q in queries_used] + [""]
     if trends:
         lines += ["## Google Trends Pakistan signals"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
     if social:
@@ -225,8 +227,10 @@ def main():
     social, social_errors = fetch_social_signals()
     errors += ["Social feed: " + e for e in social_errors[:3]]
     products = []
+    queries_used = []
     try:
         queries = make_queries(trends, social)
+        queries_used = queries
         if not queries: errors.append("AI returned no defensible product queries.")
         for q in queries:
             matches, e = search_daraz(q)
@@ -247,7 +251,9 @@ def main():
         image_url, image_error = upload_product_image_to_cloudinary(p["url"])
         p["public_image_url"] = image_url or ""
         if image_error: p["image_upload_error"] = image_error
-    report = build_report(trends, social, products, errors)
+    report = build_report(trends, social, products, errors, queries_used)
+    if queries_used:
+        print("Daraz search queries: " + " | ".join(queries_used))
     with open("trend_report.md","w",encoding="utf-8") as f: f.write(report)
     with open("daraz_candidates.json","w",encoding="utf-8") as f:
         json.dump({"generated_at":datetime.now(timezone.utc).isoformat(),"count":len(products),"items":products},f,ensure_ascii=False,indent=2)
