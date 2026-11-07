@@ -12,11 +12,19 @@ def main():
     if not SOURCE.exists():
         raise SystemExit("daraz_candidates.json is missing; run main.py first.")
     data = json.loads(SOURCE.read_text(encoding="utf-8"))
+    previous = {}
+    if QUEUE_JSON.exists():
+        try:
+            old_items = json.loads(QUEUE_JSON.read_text(encoding="utf-8")).get("items", [])
+            previous = {item.get("daraz_listing_url"): item for item in old_items if item.get("daraz_listing_url")}
+        except Exception:
+            previous = {}
     queue = []
     for number, product in enumerate(data.get("items", []), 1):
         copy = product.get("social_copy") or {}
         if not copy:
             continue
+        old = previous.get(product.get("url", ""), {})
         queue.append({
             "id": str(number),
             "opportunity": number,
@@ -30,15 +38,15 @@ def main():
             "tiktok_hook": copy.get("tiktok_hook", ""),
             "video_script": copy.get("video_script", ""),
             "hashtags": copy.get("hashtags", []),
-            "affiliate_url": "",
+            "affiliate_url": old.get("affiliate_url", ""),
             "public_image_url": product.get("public_image_url", ""),
             "public_video_url": product.get("public_video_url", ""),
             "video_cover_url": product.get("video_cover_url", ""),
-            "verified": False,
-            "approved": False,
-            "affiliate_status": "manual_generation_required_no_supported_api_confirmed",
-            "publishing_status": "draft_not_published",
-            "approval_required": True,
+            "verified": bool(old.get("verified", False)),
+            "approved": bool(old.get("approved", False)),
+            "affiliate_status": old.get("affiliate_status", "manual_generation_required_no_supported_api_confirmed"),
+            "publishing_status": old.get("publishing_status", "draft_not_published"),
+            "approval_required": not bool(old.get("approved", False)),
         })
     payload = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
