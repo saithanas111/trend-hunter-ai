@@ -245,6 +245,19 @@ def create_social_copy(product):
         if not data.get(key): raise ValueError("Missing copy field: " + key)
     return data
 
+
+def fallback_social_copy(product):
+    title = re.sub(r"\\s+", " ", product.get("title", "Daraz product")).strip()[:180]
+    safe_line = "Check the product details, compatibility and latest availability on the listing before ordering."
+    hashtags = ["#DarazPakistan", "#TrendingFinds", "#OnlineShopping", "#ProductFinds", "#Pakistan"]
+    return {
+        "facebook_caption": f"{title}\\n\\n{safe_line}",
+        "instagram_caption": f"{title}\\n\\nExplore the listing for full details.\\n{safe_line}",
+        "tiktok_hook": f"Looking for {title.lower()}?",
+        "video_script": f"Show the product clearly. On-screen text: {title}. End card: Check the listing for details and compatibility.",
+        "hashtags": hashtags,
+    }
+
 def upload_product_image_to_cloudinary(product_url):
     if not all(CLOUDINARY.values()):
         return None, "Cloudinary credentials missing."
@@ -325,6 +338,7 @@ def main():
         try:
             p["social_copy"] = create_social_copy(p)
         except Exception as e:
+            p["social_copy"] = fallback_social_copy(p)
             p["social_copy_error"] = str(e)[:200]
         image_url, image_error = upload_product_image_to_cloudinary(p["url"])
         p["public_image_url"] = image_url or ""
