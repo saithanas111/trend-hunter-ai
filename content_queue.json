@@ -1,36 +1,6 @@
 {
-  "generated_at": "2026-11-07T16:53:43.170Z",
-  "count": 1,
-  "notice": "User-approved Xiaomi cable. Old Essager image/video must never be used; regenerate matching Xiaomi product image and Reel before publishing.",
-  "items": [
-    {
-      "id": "1",
-      "opportunity": 1,
-      "product": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A",
-      "daraz_listing_url": "https://www.daraz.pk/products/13-1211s-10-10-10s-9-100-w-120w-33w-67w-120w-6a-i491483422.html",
-      "search_query": "Xiaomi 120W 67W 33W Turbo charger cable",
-      "listing_verification": "User confirmed their affiliate shortlink is for the Xiaomi Turbo cable shown in their Daraz screenshot (Rs. 527, 4.9 rating, 523 ratings, 2.4K sold). Public Daraz search snapshot 2026-11-07 shows a matching E-Z Cart listing at Rs. 549, 4.9/5 from 523 ratings and 2.4K sold; live price may vary. Product authenticity and exact device compatibility are not independently verified.",
-      "facebook_caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and selected variant before ordering. Daraz link: https://s.daraz.pk/s.230Dt?cc",
-      "instagram_caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and choose the compatible variant before ordering. #Xiaomi #TurboCharging #TypeCCable #DarazPK #TechAccessories",
-      "caption": "Need a replacement Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and choose the compatible variant before ordering. #Xiaomi #TurboCharging #TypeCCable #DarazPK #TechAccessories",
-      "tiktok_hook": "Need a replacement cable for your Xiaomi fast charger?",
-      "video_script": "Looking for a Xiaomi charging cable? This listing offers 33W, 67W and 120W options. Check your charger model and select the compatible cable before ordering.",
-      "hashtags": [
-        "#Xiaomi",
-        "#TurboCharging",
-        "#TypeCCable",
-        "#DarazPK",
-        "#TechAccessories"
-      ],
-      "affiliate_url": "https://s.daraz.pk/s.230Dt?cc",
-      "public_image_url": "https://img.drz.lazcdn.com/g/kf/S852f26d5ebd04777b9604812e87f54c0I.jpg_720x720q80.jpg_.webp",
-      "public_video_url": "",
-      "video_cover_url": "",
-      "verified": true,
-      "approved": true,
-      "affiliate_status": "user_supplied_affiliate_link_listing_confirmed_by_user",
-      "publishing_status": "awaiting_xiaomi_asset_generation",
-      "approval_required": false
-    }
-  ]
+  "generated_at": "2026-11-07T17:06:59.410978+00:00",
+  "count": 0,
+  "notice": "Drafts only. Every item starts unverified and unapproved. Publishing requires a verified product, approved post, affiliate URL, public image URL and enabled publishing secrets.",
+  "items": []
 }
