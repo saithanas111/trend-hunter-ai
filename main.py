@@ -286,7 +286,7 @@ def upload_product_image_to_cloudinary(product):
                           api_key=CLOUDINARY["CLOUDINARY_API_KEY"],
                           api_secret=CLOUDINARY["CLOUDINARY_API_SECRET"], secure=True)
         result = cloudinary.uploader.upload(html.unescape(image),
-                                             folder="trend-hunter/products", resource_type="image")
+                                             folder="trend-hunter/products", resource_type="image", format="jpg")
         return result.get("secure_url"), None
     except Exception as e:
         return None, str(e)[:200]
