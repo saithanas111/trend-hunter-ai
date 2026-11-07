@@ -178,12 +178,14 @@ def parse_json(text, kind):
     return json.loads(match.group(0))
 
 def make_queries(trends, social, tiktok):
-    prompt = ("From these current Pakistan search and public discussion signals, return ONLY a JSON array of up to 8 "
-              "physical product search queries clearly connected to the signals. Do not invent trends or demand. "
-              "Return [] if no defensible product match. Signals:\n" +
-              "Use TikTok tracked product signals as trend evidence, but remember they are global and not Pakistan-specific. "
-              "Return [] rather than forcing a match. Signals:\n" +
-              json.dumps({"google_trends": trends[:15], "social_posts": social[:15], "tiktok_product_signals": tiktok[:10]}, ensure_ascii=False))
+    prompt = ("From these live search and social product signals, return ONLY a JSON array of up to 8 "
+              "physical product search queries clearly connected to one or more observed product trends. "
+              "Do not invent trends or demand. TikTok tracker signals are global, not Pakistan-specific; "
+              "use them as product-discovery signals, then match only to actual Daraz Pakistan listings. "
+              "Google Trends Pakistan and public discussion signals are additional context. "
+              "Return [] if no defensible product match. Signals:\\n" +
+              json.dumps({"google_trends_pk": trends[:15], "reddit_public_posts": social[:15],
+                          "tiktok_product_signals_global": tiktok[:10]}, ensure_ascii=False))
     vals = parse_json(gemini_text(prompt), "array")
     return [str(x).strip()[:100] for x in vals if str(x).strip()][:8]
 
