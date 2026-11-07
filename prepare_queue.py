@@ -32,6 +32,8 @@ def main():
             "hashtags": copy.get("hashtags", []),
             "affiliate_url": "",
             "public_image_url": product.get("public_image_url", ""),
+            "public_video_url": product.get("public_video_url", ""),
+            "video_cover_url": product.get("video_cover_url", ""),
             "verified": False,
             "approved": False,
             "affiliate_status": "manual_generation_required_no_supported_api_confirmed",
@@ -48,7 +50,7 @@ def main():
     fields = ["id", "opportunity", "product", "daraz_listing_url", "search_query",
               "listing_verification", "facebook_caption", "instagram_caption", "caption",
               "tiktok_hook", "video_script", "hashtags", "affiliate_url",
-              "public_image_url", "verified", "approved", "affiliate_status",
+              "public_image_url", "public_video_url", "video_cover_url", "verified", "approved", "affiliate_status",
               "publishing_status", "approval_required"]
     with QUEUE_CSV.open("w", newline="", encoding="utf-8-sig") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields)
