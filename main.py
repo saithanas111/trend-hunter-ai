@@ -45,7 +45,7 @@ RESEARCHED_DARAZ_MATCHES = {
         "url": "https://www.daraz.pk/products/7-90-100-i1954838080.html",
         "source_image_url": "https://img.drz.lazcdn.com/g/kf/S84b4d1b7bff947af99284def5cb4a3a0Y.jpg_720x720q80.jpg_.webp",
         "source": "Daraz Pakistan public product and category pages; manually researched current match",
-        "verification": "External Daraz snapshot 2026-11-07: Rs 1,320; 5.0/5 from 32 ratings; about 1.0K sold; seller Buy More Save More Store; seller positive rating 87%; ship-on-time 100%. Listing stock and affiliate eligibility still require live/account verification.",
+        "verification": "Category-level match to the viral TikTok 90-degree 100W cable trend (not the same brand/model). Daraz snapshot 2026-11-07: Rs 1,320; 5.0/5 from 32 ratings; about 1.0K sold; seller Buy More Save More Store; seller positive rating 87%; ship-on-time 100%; 14-day easy return; no warranty. Listing stock and affiliate eligibility still require live/account verification.",
     }]
 }
 
@@ -325,8 +325,8 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
              f"- Public Reddit hot-post signals fetched: {len(social)}",
              f"- Public TikTok trend tracker product signals fetched: {len(tiktok)} (global, not Pakistan-specific)",
-             f"- Daraz listing candidates extracted: {len(products)}",
-             f"- Product images uploaded to Cloudinary: {sum(bool(p.get('public_image_url')) for p in products)}",
+             f"- Daraz listing candidates matched: {len(products)}",
+             f"- Public product images hosted: {sum(bool(p.get('public_image_url')) for p in products)}",
              "- Trend/search signals are not proof of Pakistan sales.",
              "- Daraz listing extraction does not verify seller quality, price, stock, reviews, delivery or affiliate eligibility.",
              "- Affiliate deeplinks are not generated; no supported Daraz affiliate API has been confirmed.",
@@ -344,7 +344,7 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
         for i,p in enumerate(products,1):
             lines += [f"### Candidate {i}: {p['title']}", f"- Search query: {p['search_query']}",
                       f"- Listing: {p['url']}", f"- Verification: {p['verification']}",
-                      f"- Cloudinary image: {p.get('public_image_url') or 'not available'}", ""]
+                      f"- Public image: {p.get('public_image_url') or 'not available'}", ""]
     else:
         lines += ["## Daraz matching result", "No reliable Daraz listing candidates extracted; no generic ideas substituted.", ""]
     lines += ["## Errors / limitations"] + ([f"- {e}" for e in errors] if errors else ["- None recorded."])
