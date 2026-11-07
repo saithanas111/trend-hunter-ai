@@ -1,3 +1,4 @@
+import csv
 import json
 import re
 import shutil
@@ -107,6 +108,24 @@ def main():
         generated += 1
 
     QUEUE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    csv_path = Path("content_queue.csv")
+    if csv_path.exists():
+        with csv_path.open("r", newline="", encoding="utf-8-sig") as handle:
+            reader = csv.DictReader(handle)
+            rows = list(reader)
+            fields = list(reader.fieldnames or [])
+        for field in ("public_video_url", "video_cover_url"):
+            if field not in fields:
+                fields.append(field)
+        by_id = {item.get("id"): item for item in payload.get("items", [])}
+        for row in rows:
+            item = by_id.get(row.get("id"), {})
+            row["public_video_url"] = item.get("public_video_url", "")
+            row["video_cover_url"] = item.get("video_cover_url", "")
+        with csv_path.open("w", newline="", encoding="utf-8-sig") as handle:
+            writer = csv.DictWriter(handle, fieldnames=fields)
+            writer.writeheader()
+            writer.writerows(rows)
     print(f"Generated {generated} vertical product Reel videos.")
 
 
