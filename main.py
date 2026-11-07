@@ -95,7 +95,7 @@ def search_daraz(query, limit=4):
         seen, found = set(), []
         for p in candidates:
             link = urljoin("https://www.daraz.pk", html.unescape(p["url"])).split("?")[0]
-            if not re.match(r"^https://www\.daraz\.pk/products/.+-i\d+-s\d+\.html$", link, re.I) or link in seen:
+            if not re.match(r"^https://www\.daraz\.pk/products/.+-i\d+(?:-s\d+)?\.html$", link, re.I) or link in seen:
                 continue
             seen.add(link)
             title = re.sub(r"[-_]+", " ", p.get("title") or "")
