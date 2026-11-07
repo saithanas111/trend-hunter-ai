@@ -97,11 +97,27 @@ def main():
         poster_path = VIDEO_DIR / f"daraz-{product_id}-cover.jpg"
         video_path = VIDEO_DIR / f"daraz-{product_id}.mp4"
         build_poster(item, image_path, poster_path)
-        vf = "zoompan=z='min(zoom+0.0012,1.10)':d=360:s=1080x1920:fps=30,format=yuv420p"
+        # Cinematic tech-ad motion: smooth push-in, subtle diagonal camera drift,
+        # animated cyan light sweep, high-contrast finish and clean fade transitions.
+        vf = (
+            "zoompan=z='min(1.0+0.00032*on,1.115)':"
+            "x='iw/2-(iw/zoom/2)+sin(on/48)*18':"
+            "y='ih/2-(ih/zoom/2)+cos(on/55)*12':"
+            "d=360:s=1080x1920:fps=30,"
+            "drawbox=x='mod(t*820,1500)-220':y=0:w=150:h=1920:"
+            "color=0x56DFFF@0.13:t=fill,"
+            "drawbox=x='mod(t*820,1500)-238':y=0:w=10:h=1920:"
+            "color=white@0.34:t=fill,"
+            "eq=contrast=1.08:saturation=1.16:brightness=0.015,"
+            "vignette=PI/5,"
+            "fade=t=in:st=0:d=0.65,"
+            "fade=t=out:st=11:d=1,"
+            "format=yuv420p"
+        )
         subprocess.run([
             "ffmpeg", "-y", "-loop", "1", "-i", str(poster_path), "-t", "12",
             "-vf", vf, "-r", "30", "-c:v", "libx264", "-preset", "veryfast",
-            "-crf", "23", "-movflags", "+faststart", str(video_path)
+            "-crf", "21", "-movflags", "+faststart", str(video_path)
         ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         item["public_video_url"] = f"{REPO_RAW}/assets/videos/{video_path.name}"
         item["video_cover_url"] = f"{REPO_RAW}/assets/videos/{poster_path.name}"
