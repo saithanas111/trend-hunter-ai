@@ -89,7 +89,7 @@ def search_daraz(query, limit=4):
         # Daraz pages often embed product cards in JSON rather than ordinary anchor text.
         # Extract canonical product URLs from that embedded page data as a second path.
         normalized = raw.replace("\\/", "/").replace("\\u002F", "/")
-        pattern = r'(?:(?:https?:)?//www\\.daraz\\.pk)?/products/[^"\\\\<>\\s]+?-i\\d+-s\\d+\\.html'
+        pattern = r'(?:(?:https?:)?//www\\.daraz\\.pk)?/products/[^"\\\\<>\\s]+?-i\\d+(?:-s\\d+)?\\.html'
         for match in re.findall(pattern, normalized, flags=re.I):
             candidates.append({"url": match, "title": ""})
         seen, found = set(), []
