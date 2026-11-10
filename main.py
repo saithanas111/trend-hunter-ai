@@ -375,8 +375,9 @@ def main():
         queries_used = queries
         if not queries: errors.append("AI returned no defensible product queries.")
         for q in queries:
-            if q in RESEARCHED_DARAZ_MATCHES:
-                products.extend([dict(item, search_query=q) for item in RESEARCHED_DARAZ_MATCHES[q]])
+            researched_key = q.strip().casefold()
+            if researched_key in RESEARCHED_DARAZ_MATCHES:
+                products.extend([dict(item, search_query=q) for item in RESEARCHED_DARAZ_MATCHES[researched_key]])
                 continue
             matches, e = search_daraz(q)
             if e: errors.append(f"Daraz search '{q}': {e}")
