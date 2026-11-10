@@ -250,7 +250,7 @@ def make_queries(trends, social, tiktok=None):
 
 def create_social_copy(product):
     prompt = ("Write safe, concise copy for this Daraz listing candidate. Return ONLY JSON with keys "
-              "facebook_caption, instagram_caption, tiktok_hook, video_script, hashtags (array of 5). "
+              "facebook_caption, instagram_caption, reel_hook, video_script, hashtags (array of 5). "
               "Do not claim viral/best-selling/discounted/tested/in-stock; do not invent price or features.\n"
               + json.dumps({"title": product["title"], "url": product["url"]}, ensure_ascii=False))
     data = parse_json(gemini_text(prompt), "object")
@@ -258,7 +258,7 @@ def create_social_copy(product):
         if not data.get(key): raise ValueError("Missing copy field: " + key)
     cta = "Comment ORDER to request the product link."
     for key in ("facebook_caption", "instagram_caption"):
-        data[key] = data[key].strip().rstrip() + "\\n\\n" + cta
+        data[key] = data[key].strip().rstrip() + "\n\n" + cta
     return data
 
 
