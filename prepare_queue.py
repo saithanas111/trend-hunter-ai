@@ -58,7 +58,7 @@ def main():
     QUEUE_JSON.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     fields = ["id", "opportunity", "product", "daraz_listing_url", "search_query",
               "listing_verification", "facebook_caption", "instagram_caption", "caption",
-              "tiktok_hook", "video_script", "hashtags", "affiliate_url",
+              "reel_hook", "video_script", "hashtags", "affiliate_url",
               "public_image_url", "public_video_url", "video_cover_url", "verified", "approved", "affiliate_status",
               "publishing_status", "approval_required"]
     with QUEUE_CSV.open("w", newline="", encoding="utf-8-sig") as handle:
