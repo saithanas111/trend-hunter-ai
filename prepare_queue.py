@@ -36,7 +36,7 @@ def main():
             "facebook_caption": copy.get("facebook_caption", ""),
             "instagram_caption": copy.get("instagram_caption", ""),
             "caption": copy.get("instagram_caption", ""),
-            "tiktok_hook": copy.get("tiktok_hook", ""),
+            "reel_hook": copy.get("reel_hook", ""),
             "video_script": copy.get("video_script", ""),
             "hashtags": copy.get("hashtags", []),
             "affiliate_url": product.get("affiliate_url") or old.get("affiliate_url", ""),
