@@ -12,7 +12,6 @@ MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", os.environ.get("GEM
 CLOUDINARY = {k: os.environ.get(k) for k in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")}
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
-TIKTOK_TRENDS_URL = "https://viralcatcher.com/trending/phones-electronics"
 REDDIT_FEEDS = [
     "https://www.reddit.com/r/gadgets/hot.json?limit=15",
     "https://www.reddit.com/r/DidntKnowIWantedThat/hot.json?limit=15",
@@ -56,27 +55,6 @@ RESEARCHED_DARAZ_MATCHES = {
         "verification": "Category-level match to the viral TikTok 90-degree 100W cable trend (not the same brand/model). Daraz snapshot 2026-11-07: Rs 1,320; 5.0/5 from 32 ratings; about 1.0K sold; seller Buy More Save More Store; seller positive rating 87%; ship-on-time 100%; 14-day easy return; no warranty. Listing stock and affiliate eligibility still require live/account verification.",
     }]
 }
-
-def fetch_tiktok_trend_signals():
-    """Read public TikTok video trend summaries from a third-party tracker; not Pakistan-specific."""
-    try:
-        raw = fetch_url(TIKTOK_TRENDS_URL, 25).decode("utf-8", "ignore")
-        plain = html.unescape(re.sub(r"<[^>]+>", " ", raw))
-        plain = re.sub(r"\s+", " ", plain)
-        pattern = re.compile(
-            r"Number\s+\d+\s+(.*?)\s+(?:\+[\d,.]+[KMB]\s+views(?:\s+in\s+\d+h)?\s+)?"
-            r"([\d,.]+[KMB]\s+total views)\s+(.{1,100}?)\s+Posted\s+([A-Za-z]+\s+\d+)",
-            re.I
-        )
-        out = []
-        for match in pattern.finditer(plain):
-            title, views, creator, posted = [re.sub(r"\s+", " ", x).strip() for x in match.groups()]
-            out.append({"title": title[:260], "total_views": views, "creator": creator[:100],
-                        "posted": posted, "source": "ViralCatcher public TikTok trend tracker",
-                        "source_url": TIKTOK_TRENDS_URL, "region": "TikTok Shop tracker; not Pakistan-specific"})
-        return out[:10], None
-    except Exception as e:
-        return [], str(e)[:200]
 
 def fetch_social_signals():
     out, errors = [], []
