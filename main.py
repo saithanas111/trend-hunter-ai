@@ -343,6 +343,7 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
         for i,p in enumerate(products,1):
             lines += [f"### Candidate {i}: {p['title']}", f"- Search query: {p['search_query']}",
                       f"- Listing: {p['url']}", f"- Verification: {p['verification']}",
+                      f"- Trend evidence: {json.dumps(p.get('trend_evidence') or {}, ensure_ascii=False)}",
                       f"- Public image: {p.get('public_image_url') or 'not available'}", ""]
     else:
         lines += ["## Daraz matching result", "No reliable Daraz listing candidates extracted; no generic ideas substituted.", ""]
