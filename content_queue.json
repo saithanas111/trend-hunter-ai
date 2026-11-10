@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-11-10T10:49:47.569256+00:00",
+  "generated_at": "2026-11-10T14:32:12.897176+00:00",
   "count": 1,
   "notice": "Drafts only. Every item starts unverified and unapproved. Publishing requires a verified product, approved post, affiliate URL, public image URL and enabled publishing secrets.",
   "items": [
@@ -30,10 +30,7 @@
       "approved": false,
       "affiliate_status": "user_confirmed_affiliate_link",
       "publishing_status": "published_instagram_reel_and_facebook_post",
-      "approval_required": true,
-      "instagram_media_id": "18227725492329249",
-      "published_at": "2026-11-10",
-      "facebook_post_id": "1212885835249403_122125568433459095"
+      "approval_required": true
     }
   ]
 }
