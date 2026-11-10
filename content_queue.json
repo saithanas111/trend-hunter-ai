@@ -1,6 +1,36 @@
 {
-  "generated_at": "2026-11-10T01:18:43.712184+00:00",
-  "count": 0,
+  "generated_at": "2026-11-10T10:47:57.878454+00:00",
+  "count": 1,
   "notice": "Drafts only. Every item starts unverified and unapproved. Publishing requires a verified product, approved post, affiliate URL, public image URL and enabled publishing secrets.",
-  "items": []
+  "items": [
+    {
+      "id": "1",
+      "opportunity": 1,
+      "product": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A",
+      "daraz_listing_url": "https://www.daraz.pk/products/13-1211s-10-10-10s-9-100-w-120w-33w-67w-120w-6a-i491483422.html",
+      "search_query": "Xiaomi 120W 67W 33W Turbo charger cable",
+      "listing_verification": "User confirmed their affiliate shortlink is for the Xiaomi Turbo cable shown in their Daraz screenshot. A public Daraz search snapshot on 2026-11-07 showed a matching listing at Rs. 549, 4.9/5 from 523 ratings and 2.4K sold, seller E-Z Cart; user's screenshot showed Rs. 527. Price may vary. Product authenticity and exact compatibility are not independently verified.",
+      "facebook_caption": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A\n\nCheck the product details, compatibility and latest availability on the listing before ordering.",
+      "instagram_caption": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A\n\nExplore the listing for full details.\nCheck the product details, compatibility and latest availability on the listing before ordering.",
+      "caption": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A\n\nExplore the listing for full details.\nCheck the product details, compatibility and latest availability on the listing before ordering.",
+      "tiktok_hook": "Looking for 100% original xiaomi 120w, 67w, 33w turbo charger cable 6a?",
+      "video_script": "Show the product clearly. On-screen text: 100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A. End card: Check the listing for details and compatibility.",
+      "hashtags": [
+        "#DarazPakistan",
+        "#TrendingFinds",
+        "#OnlineShopping",
+        "#ProductFinds",
+        "#Pakistan"
+      ],
+      "affiliate_url": "",
+      "public_image_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/products/daraz-491483422.jpg",
+      "public_video_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/videos/daraz-491483422.mp4",
+      "video_cover_url": "https://raw.githubusercontent.com/saithanas111/trend-hunter-ai/main/assets/videos/daraz-491483422-cover.jpg",
+      "verified": false,
+      "approved": false,
+      "affiliate_status": "manual_generation_required_no_supported_api_confirmed",
+      "publishing_status": "draft_not_published",
+      "approval_required": true
+    }
+  ]
 }
