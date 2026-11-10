@@ -32,6 +32,7 @@ def main():
             "daraz_listing_url": product.get("url", ""),
             "search_query": product.get("search_query", ""),
             "listing_verification": product.get("verification", ""),
+            "trend_evidence": product.get("trend_evidence", {}),
             "facebook_caption": copy.get("facebook_caption", ""),
             "instagram_caption": copy.get("instagram_caption", ""),
             "caption": copy.get("instagram_caption", ""),
