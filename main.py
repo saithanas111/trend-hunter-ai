@@ -43,6 +43,7 @@ RESEARCHED_DARAZ_MATCHES = {
     "xiaomi 120w 67w 33w turbo charger cable": [{
         "title": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A",
         "url": "https://www.daraz.pk/products/13-1211s-10-10-10s-9-100-w-120w-33w-67w-120w-6a-i491483422.html",
+        "affiliate_url": "https://s.daraz.pk/s.230Dt?cc",
         "source_image_url": "https://img.drz.lazcdn.com/g/kf/S852f26d5ebd04777b9604812e87f54c0I.jpg_720x720q80.jpg_.webp",
         "source": "User-selected Daraz affiliate product; public Daraz listing image",
         "verification": "User confirmed their affiliate shortlink is for the Xiaomi Turbo cable shown in their Daraz screenshot. A public Daraz search snapshot on 2026-11-07 showed a matching listing at Rs. 549, 4.9/5 from 523 ratings and 2.4K sold, seller E-Z Cart; user's screenshot showed Rs. 527. Price may vary. Product authenticity and exact compatibility are not independently verified."
