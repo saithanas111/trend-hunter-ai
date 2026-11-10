@@ -254,7 +254,7 @@ def create_social_copy(product):
               "Do not claim viral/best-selling/discounted/tested/in-stock; do not invent price or features.\n"
               + json.dumps({"title": product["title"], "url": product["url"]}, ensure_ascii=False))
     data = parse_json(gemini_text(prompt), "object")
-    for key in ("facebook_caption", "instagram_caption", "tiktok_hook", "video_script", "hashtags"):
+    for key in ("facebook_caption", "instagram_caption", "reel_hook", "video_script", "hashtags"):
         if not data.get(key): raise ValueError("Missing copy field: " + key)
     cta = "Comment ORDER to request the product link."
     for key in ("facebook_caption", "instagram_caption"):
@@ -267,9 +267,9 @@ def fallback_social_copy(product):
     safe_line = "Check the product details, compatibility and latest availability on the listing before ordering."
     hashtags = ["#DarazPakistan", "#TrendingFinds", "#OnlineShopping", "#ProductFinds", "#Pakistan"]
     return {
-        "facebook_caption": f"{title}\n\n{safe_line}",
-        "instagram_caption": f"{title}\n\nExplore the listing for full details.\n{safe_line}",
-        "tiktok_hook": f"Looking for {title.lower()}?",
+        "facebook_caption": f"{title}\n\n{safe_line}\n\nComment ORDER to request the product link.",
+        "instagram_caption": f"{title}\n\nExplore the listing for full details.\n{safe_line}\n\nComment ORDER to request the product link.",
+        "reel_hook": f"Looking for {title.lower()}?",
         "video_script": f"Show the product clearly. On-screen text: {title}. End card: Check the listing for details and compatibility.",
         "hashtags": hashtags,
     }
