@@ -29,10 +29,11 @@
       "verified": false,
       "approved": false,
       "affiliate_status": "user_confirmed_affiliate_link",
-      "publishing_status": "published_instagram_reel",
+      "publishing_status": "published_instagram_reel_and_facebook_post",
       "approval_required": true,
       "instagram_media_id": "18227725492329249",
-      "published_at": "2026-11-10"
+      "published_at": "2026-11-10",
+      "facebook_post_id": "1212885835249403_122125568433459095"
     }
   ]
 }
