@@ -17,8 +17,9 @@ REDDIT_FEEDS = [
     "https://www.reddit.com/r/DidntKnowIWantedThat/hot.json?limit=15",
 ]
 APIFY_API_TOKEN = os.environ.get("APIFY_API_TOKEN", "").strip()
-INSTAGRAM_TREND_HASHTAGS = [x.strip().lstrip("#") for x in os.environ.get(
-    "INSTAGRAM_TREND_HASHTAGS", "productfinds,trendinggadgets,gadgets,portableblender,kashmiribangles"
+INSTAGRAM_TREND_HASHTAGS = [x.strip().lstrip("#") for x in (
+    os.environ.get("INSTAGRAM_TREND_HASHTAGS") or
+    "productfinds,trendinggadgets,gadgets,portableblender,kashmiribangles"
 ).split(",") if x.strip()][:5]
 
 def fetch_url(url, timeout=20):
