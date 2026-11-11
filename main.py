@@ -318,6 +318,7 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
              "**AI models attempted:** " + ", ".join(MODELS), "",
              "## Live research status",
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
+             "- Google Trends is search-interest context only; it does not qualify products as social trends.",
              f"- Public Reddit hot-post signals fetched: {len(social)}",
              "- TikTok trend signals: not used, per the current platform instruction.",
              f"- Daraz listing candidates matched: {len(products)}",
@@ -357,7 +358,7 @@ def main():
     try:
         query_items = make_queries(trends, social)
         queries_used = [item["query"] for item in query_items]
-        if not query_items: errors.append("No product queries were defensibly linked to a live Google Trends or Reddit signal.")
+        if not query_items: errors.append("No product queries were defensibly linked to a live public social post.")
         for candidate in query_items:
             q = candidate["query"]
             evidence = candidate["trend_evidence"]
