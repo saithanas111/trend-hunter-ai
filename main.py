@@ -154,7 +154,9 @@ def fetch_instagram_public_signals():
             if age_days < -0.25 or age_days > 7:
                 continue
             username = row.get("ownerUsername") or row.get("username") or "unknown"
-            tag = next((tag for tag in hashtags if f"/{tag.lower()}/" in str(post_url).lower()), hashtags[0])
+            row_tags = row.get("hashtags") or []
+            row_tags = {str(value).strip().lstrip("#").lower() for value in row_tags}
+            tag = next((tag for tag in hashtags if tag.lower() in row_tags), hashtags[0])
             views = row.get("views") or row.get("videoViewCount") or row.get("video_view_count")
             likes = row.get("likes") or row.get("likesCount") or row.get("like_count")
             comments = row.get("comments") or row.get("commentsCount") or row.get("comment_count")
@@ -437,7 +439,8 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
     if trends:
         lines += ["## Google Trends Pakistan signals"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
     if social:
-        lines += ["## Public social discussion signals"] + [f"- [{p.get('community')}] {p['title']} (views {p.get('views', 'not provided')}, likes {p.get('score')}, comments {p.get('comments')}, posted {p.get('timestamp', 'date unavailable')}) {p['url']}" for p in social[:20]] + [""]
+        lines += ["## Instagram public hashtag signals"] + [f"- [{p.get('community')}] {p['title']} (views {p.get('views', 'not provided')}, likes {p.get('score')}, comments {p.get('comments')}, posted {p.get('timestamp', 'date unavailable')}) {p['url']}" for p in social if p.get('source') == 'Instagram public hashtag feed via Apify'][:15] + [""]
+        lines += ["## Reddit public discussion signals"] + [f"- [{p.get('community')}] {p['title']} (score {p.get('score')}, comments {p.get('comments')}) {p['url']}" for p in social if p.get('source') == 'Reddit public hot posts'][:15] + [""]
     if products:
         lines += ["## Daraz candidates"]
         for i,p in enumerate(products,1):
