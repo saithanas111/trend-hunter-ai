@@ -199,23 +199,17 @@ def parse_json(text, kind):
 
 def make_queries(trends, social, tiktok=None):
     """Return only product queries tied to an exact live signal in the supplied sources."""
+    # Google Trends is search-interest context, not social-platform proof.
+    # Only live public social-platform posts may qualify a product candidate.
     signals = []
-    for item in trends:
-        title = (item.get("topic") or "").strip()
-        if title:
-            signals.append({
-                "title": title,
-                "source": "Google Trends Pakistan RSS",
-                "url": "",
-                "metric": item.get("approx_traffic"),
-            })
     for item in social:
         title = (item.get("title") or "").strip()
-        if title:
+        url = (item.get("url") or "").strip()
+        if title and url:
             signals.append({
                 "title": title,
                 "source": "Reddit public hot posts",
-                "url": item.get("url", ""),
+                "url": url,
                 "metric": f"score={item.get('score')}; comments={item.get('comments')}",
             })
     if not signals:
