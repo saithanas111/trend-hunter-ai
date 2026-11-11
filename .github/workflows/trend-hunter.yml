@@ -38,7 +38,6 @@ jobs:
 
       - name: Run Trend Hunter AI
         env:
-          USER_SELECTED_PRODUCT_MODE: "true"
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
@@ -48,7 +47,7 @@ jobs:
       - name: Prepare structured content queue
         run: python prepare_queue.py
 
-      - name: Generate vertical product Reels
+      - name: Generate 2.5D image-motion Reels (not true 3D CGI)
         run: |
           if ! command -v ffmpeg >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
           python generate_reel.py

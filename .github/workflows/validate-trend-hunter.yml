@@ -1,0 +1,27 @@
+name: Validate Trend Hunter changes
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "main.py"
+      - "prepare_queue.py"
+      - "generate_reel.py"
+      - "validate_queue.py"
+      - ".github/workflows/validate-trend-hunter.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  syntax:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile Python modules
+        run: python -m compileall -q main.py prepare_queue.py generate_reel.py validate_queue.py

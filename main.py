@@ -12,7 +12,6 @@ MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", os.environ.get("GEM
 CLOUDINARY = {k: os.environ.get(k) for k in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")}
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
-TIKTOK_TRENDS_URL = "https://viralcatcher.com/trending/phones-electronics"
 REDDIT_FEEDS = [
     "https://www.reddit.com/r/gadgets/hot.json?limit=15",
     "https://www.reddit.com/r/DidntKnowIWantedThat/hot.json?limit=15",
@@ -56,27 +55,6 @@ RESEARCHED_DARAZ_MATCHES = {
         "verification": "Category-level match to the viral TikTok 90-degree 100W cable trend (not the same brand/model). Daraz snapshot 2026-11-07: Rs 1,320; 5.0/5 from 32 ratings; about 1.0K sold; seller Buy More Save More Store; seller positive rating 87%; ship-on-time 100%; 14-day easy return; no warranty. Listing stock and affiliate eligibility still require live/account verification.",
     }]
 }
-
-def fetch_tiktok_trend_signals():
-    """Read public TikTok video trend summaries from a third-party tracker; not Pakistan-specific."""
-    try:
-        raw = fetch_url(TIKTOK_TRENDS_URL, 25).decode("utf-8", "ignore")
-        plain = html.unescape(re.sub(r"<[^>]+>", " ", raw))
-        plain = re.sub(r"\s+", " ", plain)
-        pattern = re.compile(
-            r"Number\s+\d+\s+(.*?)\s+(?:\+[\d,.]+[KMB]\s+views(?:\s+in\s+\d+h)?\s+)?"
-            r"([\d,.]+[KMB]\s+total views)\s+(.{1,100}?)\s+Posted\s+([A-Za-z]+\s+\d+)",
-            re.I
-        )
-        out = []
-        for match in pattern.finditer(plain):
-            title, views, creator, posted = [re.sub(r"\s+", " ", x).strip() for x in match.groups()]
-            out.append({"title": title[:260], "total_views": views, "creator": creator[:100],
-                        "posted": posted, "source": "ViralCatcher public TikTok trend tracker",
-                        "source_url": TIKTOK_TRENDS_URL, "region": "TikTok Shop tracker; not Pakistan-specific"})
-        return out[:10], None
-    except Exception as e:
-        return [], str(e)[:200]
 
 def fetch_social_signals():
     out, errors = [], []
@@ -219,56 +197,62 @@ def parse_json(text, kind):
     if not match: raise ValueError("Gemini did not return valid JSON.")
     return json.loads(match.group(0))
 
-def make_queries(trends, social, tiktok):
-    # Current user-approved launch product; do not label it as a verified social trend.
-    if os.environ.get("USER_SELECTED_PRODUCT_MODE", "true").lower() == "true":
-        return ["Xiaomi 120W 67W 33W Turbo charger cable"]
-    # Launch with the strongest directly observed product trend that has a researched Daraz match.
-    if any("100W 90" in signal.get("title", "") and "elbow" in signal.get("title", "").lower() for signal in tiktok):
-        return ["90 degree USB C elbow charging cable"]
-    if tiktok:
-        queries, seen = [], set()
-        for signal in tiktok:
-            title = signal.get("title", "").lower()
-            if "remote control" in title and ("scroll" in title or "tiktok" in title or "page turn" in title):
-                query = "TikTok scrolling remote control"
-            elif "usb-c" in title or "usb c" in title or ("elbow" in title and "cable" in title):
-                query = "90 degree USB C elbow charging cable"
-            elif "keychain" in title and "camera" in title:
-                query = "mini keychain digital camera"
-            elif "camera" in title or "vlogging" in title:
-                query = "mini digital vlogging camera"
-            elif "fitness tracker" in title:
-                query = "fitness tracker silent alarm"
-            elif "power bank" in title or "portable charger" in title:
-                query = "5000mAh mini power bank"
-            elif "dvd player" in title:
-                query = "portable DVD player"
-            else:
-                words = re.findall(r"[a-z0-9]+", title)
-                query = " ".join(words[:7])
-            key = query.casefold()
-            if query and key not in seen:
-                seen.add(key)
-                queries.append(query)
-            if len(queries) >= 4:
-                break
-        return queries
-    prompt = ("From current Pakistan search and public discussion signals, return ONLY a JSON array of up to 8 "
-              "physical product search queries clearly connected to the signals. Do not invent trends or demand. "
-              "Return [] if no defensible product match. Signals:\\n" +
-              json.dumps({"google_trends_pk": trends[:15], "reddit_public_posts": social[:15]}, ensure_ascii=False))
+def make_queries(trends, social, tiktok=None):
+    """Return only product queries tied to an exact live signal in the supplied sources."""
+    # Google Trends is search-interest context, not social-platform proof.
+    # Only live public social-platform posts may qualify a product candidate.
+    signals = []
+    for item in social:
+        title = (item.get("title") or "").strip()
+        url = (item.get("url") or "").strip()
+        if title and url:
+            signals.append({
+                "title": title,
+                "source": "Reddit public hot posts",
+                "url": url,
+                "metric": f"score={item.get('score')}; comments={item.get('comments')}",
+            })
+    if not signals:
+        return []
+
+    prompt = (
+        "Return ONLY a JSON array of up to 8 objects with keys query, signal_title, signal_source, signal_url. "
+        "Each query must be a physical product explicitly evidenced by one supplied signal. "
+        "Copy signal_title, signal_source and signal_url EXACTLY from one supplied signal. "
+        "Do not invent trends, brands, popularity, sales or evidence. Ignore general news and non-product topics. "
+        "If no clear product is evidenced, return []. Signals:\\n" +
+        json.dumps(signals, ensure_ascii=False)
+    )
     vals = parse_json(gemini_text(prompt), "array")
-    return [str(x).strip()[:100] for x in vals if str(x).strip()][:8]
+    known = {(x["title"], x["source"], x["url"]): x for x in signals}
+    out, seen = [], set()
+    for item in vals:
+        if not isinstance(item, dict):
+            continue
+        query = str(item.get("query") or "").strip()[:100]
+        key = (
+            str(item.get("signal_title") or "").strip(),
+            str(item.get("signal_source") or "").strip(),
+            str(item.get("signal_url") or "").strip(),
+        )
+        evidence = known.get(key)
+        if not query or not evidence or query.casefold() in seen:
+            continue
+        seen.add(query.casefold())
+        out.append({"query": query, "trend_evidence": evidence})
+    return out[:8]
 
 def create_social_copy(product):
     prompt = ("Write safe, concise copy for this Daraz listing candidate. Return ONLY JSON with keys "
-              "facebook_caption, instagram_caption, tiktok_hook, video_script, hashtags (array of 5). "
+              "facebook_caption, instagram_caption, reel_hook, video_script, hashtags (array of 5). "
               "Do not claim viral/best-selling/discounted/tested/in-stock; do not invent price or features.\n"
               + json.dumps({"title": product["title"], "url": product["url"]}, ensure_ascii=False))
     data = parse_json(gemini_text(prompt), "object")
-    for key in ("facebook_caption", "instagram_caption", "tiktok_hook", "video_script", "hashtags"):
+    for key in ("facebook_caption", "instagram_caption", "reel_hook", "video_script", "hashtags"):
         if not data.get(key): raise ValueError("Missing copy field: " + key)
+    cta = "Comment ORDER to request the product link."
+    for key in ("facebook_caption", "instagram_caption"):
+        data[key] = data[key].strip().rstrip() + "\n\n" + cta
     return data
 
 
@@ -277,9 +261,9 @@ def fallback_social_copy(product):
     safe_line = "Check the product details, compatibility and latest availability on the listing before ordering."
     hashtags = ["#DarazPakistan", "#TrendingFinds", "#OnlineShopping", "#ProductFinds", "#Pakistan"]
     return {
-        "facebook_caption": f"{title}\n\n{safe_line}",
-        "instagram_caption": f"{title}\n\nExplore the listing for full details.\n{safe_line}",
-        "tiktok_hook": f"Looking for {title.lower()}?",
+        "facebook_caption": f"{title}\n\n{safe_line}\n\nComment ORDER to request the product link.",
+        "instagram_caption": f"{title}\n\nExplore the listing for full details.\n{safe_line}\n\nComment ORDER to request the product link.",
+        "reel_hook": f"Looking for {title.lower()}?",
         "video_script": f"Show the product clearly. On-screen text: {title}. End card: Check the listing for details and compatibility.",
         "hashtags": hashtags,
     }
@@ -335,7 +319,7 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
              "## Live research status",
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
              f"- Public Reddit hot-post signals fetched: {len(social)}",
-             f"- Public TikTok trend tracker product signals fetched: {len(tiktok)} (global, not Pakistan-specific)",
+             "- TikTok trend signals: not used, per the current platform instruction.",
              f"- Daraz listing candidates matched: {len(products)}",
              f"- Public product images hosted: {sum(bool(p.get('public_image_url')) for p in products)}",
              "- Trend/search signals are not proof of Pakistan sales.",
@@ -348,13 +332,12 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
         lines += ["## Google Trends Pakistan signals"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
     if social:
         lines += ["## Public social discussion signals"] + [f"- [{p.get('community')}] {p['title']} (score {p.get('score')}, comments {p.get('comments')}) {p['url']}" for p in social[:12]] + [""]
-    if tiktok:
-        lines += ["## TikTok product trend signals (global tracker; not Pakistan-specific)"] + [f"- {p['title']} — {p['total_views']} — {p['creator']} — posted {p['posted']} — {p['source_url']}" for p in tiktok[:10]] + [""]
     if products:
         lines += ["## Daraz candidates"]
         for i,p in enumerate(products,1):
             lines += [f"### Candidate {i}: {p['title']}", f"- Search query: {p['search_query']}",
                       f"- Listing: {p['url']}", f"- Verification: {p['verification']}",
+                      f"- Trend evidence: {json.dumps(p.get('trend_evidence') or {}, ensure_ascii=False)}",
                       f"- Public image: {p.get('public_image_url') or 'not available'}", ""]
     else:
         lines += ["## Daraz matching result", "No reliable Daraz listing candidates extracted; no generic ideas substituted.", ""]
@@ -367,21 +350,25 @@ def main():
     if err: errors.append("Google Trends: " + err)
     social, social_errors = fetch_social_signals()
     errors += ["Reddit feed: " + e for e in social_errors[:3]]
-    tiktok, tiktok_error = fetch_tiktok_trend_signals()
-    if tiktok_error: errors.append("TikTok trend tracker: " + tiktok_error)
+    # TikTok is intentionally not accessed or used in this project phase.
+    tiktok = []
     products = []
     queries_used = []
     try:
-        queries = make_queries(trends, social, tiktok)
-        queries_used = queries
-        if not queries: errors.append("AI returned no defensible product queries.")
-        for q in queries:
+        query_items = make_queries(trends, social)
+        queries_used = [item["query"] for item in query_items]
+        if not query_items: errors.append("No product queries were defensibly linked to a live Google Trends or Reddit signal.")
+        for candidate in query_items:
+            q = candidate["query"]
+            evidence = candidate["trend_evidence"]
             researched_key = q.strip().casefold()
             if researched_key in RESEARCHED_DARAZ_MATCHES:
-                products.extend([dict(item, search_query=q) for item in RESEARCHED_DARAZ_MATCHES[researched_key]])
+                products.extend([dict(item, search_query=q, trend_evidence=evidence) for item in RESEARCHED_DARAZ_MATCHES[researched_key]])
                 continue
             matches, e = search_daraz(q)
             if e: errors.append(f"Daraz search '{q}': {e}")
+            for match in matches:
+                match["trend_evidence"] = evidence
             products.extend(matches)
             if len(products) >= 15: break
             time.sleep(2)
@@ -391,17 +378,11 @@ def main():
     for p in products: unique.setdefault(p["url"], p)
     products = list(unique.values())[:15]
     for p in products:
-        # In the user-selected launch product mode, keep the run fast and reliable:
-        # use conservative deterministic copy instead of waiting on a second Gemini call.
-        if os.environ.get("USER_SELECTED_PRODUCT_MODE", "true").lower() == "true":
+        try:
+            p["social_copy"] = create_social_copy(p)
+        except Exception as e:
             p["social_copy"] = fallback_social_copy(p)
-            p["social_copy_note"] = "Deterministic safe copy used for user-selected launch product."
-        else:
-            try:
-                p["social_copy"] = create_social_copy(p)
-            except Exception as e:
-                p["social_copy"] = fallback_social_copy(p)
-                p["social_copy_error"] = str(e)[:200]
+            p["social_copy_error"] = str(e)[:200]
         image_url, image_error = upload_product_image_to_cloudinary(p)
         p["public_image_url"] = image_url or ""
         if image_error: p["image_upload_error"] = image_error
