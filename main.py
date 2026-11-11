@@ -16,6 +16,11 @@ REDDIT_FEEDS = [
     "https://www.reddit.com/r/gadgets/hot.json?limit=15",
     "https://www.reddit.com/r/DidntKnowIWantedThat/hot.json?limit=15",
 ]
+APIFY_API_TOKEN = os.environ.get("APIFY_API_TOKEN", "").strip()
+INSTAGRAM_TREND_HASHTAGS = [x.strip().lstrip("#") for x in (
+    os.environ.get("INSTAGRAM_TREND_HASHTAGS") or
+    "productfinds,trendinggadgets,gadgets,portableblender,kashmiribangles"
+).split(",") if x.strip()][:5]
 
 def fetch_url(url, timeout=20):
     req = urllib.request.Request(url, headers=HEADERS)
@@ -72,6 +77,106 @@ def fetch_social_signals():
             errors.append(str(e)[:150])
     out.sort(key=lambda x: (x.get("score") or 0) + 2*(x.get("comments") or 0), reverse=True)
     return out[:25], errors
+
+
+def public_metric_number(value):
+    if isinstance(value, (int, float)):
+        return float(value)
+    raw = str(value or "").strip().replace(",", "").upper()
+    try:
+        multiplier = 1
+        if raw.endswith("K"):
+            multiplier, raw = 1_000, raw[:-1]
+        elif raw.endswith("M"):
+            multiplier, raw = 1_000_000, raw[:-1]
+        elif raw.endswith("B"):
+            multiplier, raw = 1_000_000_000, raw[:-1]
+        return float(raw) * multiplier
+    except Exception:
+        return 0.0
+
+
+def parse_public_post_date(value):
+    if value is None:
+        return None
+    try:
+        if isinstance(value, (int, float)):
+            return datetime.fromtimestamp(value, tz=timezone.utc)
+        raw = str(value).strip().replace("Z", "+00:00")
+        parsed = datetime.fromisoformat(raw)
+        return parsed.replace(tzinfo=timezone.utc) if parsed.tzinfo is None else parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def fetch_instagram_public_signals():
+    """Optional public Instagram hashtag research via Apify; never accesses private data."""
+    if not APIFY_API_TOKEN:
+        return [], ["Instagram public trend source skipped: APIFY_API_TOKEN is not configured."]
+    hashtags = INSTAGRAM_TREND_HASHTAGS
+    if not hashtags:
+        return [], ["Instagram public trend source skipped: no hashtags configured."]
+    endpoint = (
+        "https://api.apify.com/v2/acts/instagram-data-api~instagram-scraper/"
+        "run-sync-get-dataset-items?token=" + urllib.parse.quote(APIFY_API_TOKEN) +
+        "&timeout=120&memory=1024"
+    )
+    payload = {
+        "directUrls": [f"https://www.instagram.com/explore/tags/{tag}/" for tag in hashtags],
+        "resultsType": "posts",
+        "resultsLimit": 2,
+        "skipPinnedPosts": True,
+        "onlyPostsNewerThan": "7 days",
+    }
+    request = urllib.request.Request(
+        endpoint, data=json.dumps(payload).encode("utf-8"),
+        headers={**HEADERS, "Content-Type": "application/json"},
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=135) as response:
+            rows = json.loads(response.read().decode("utf-8"))
+        if not isinstance(rows, list):
+            raise ValueError("Apify returned an unexpected dataset format.")
+        now = datetime.now(timezone.utc)
+        out = []
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            post_url = row.get("url") or row.get("postUrl") or row.get("post_url")
+            caption = str(row.get("caption") or row.get("text") or "").strip()
+            posted = parse_public_post_date(
+                row.get("takenAt") or row.get("timestamp") or row.get("taken_at") or row.get("createdAt")
+            )
+            if not post_url or not str(post_url).startswith("https://www.instagram.com/") or not posted:
+                continue
+            age_days = (now - posted).total_seconds() / 86400
+            if age_days < -0.25 or age_days > 7:
+                continue
+            username = row.get("ownerUsername") or row.get("username") or "unknown"
+            row_tags = row.get("hashtags") or []
+            row_tags = {str(value).strip().lstrip("#").lower() for value in row_tags}
+            tag = next((tag for tag in hashtags if tag.lower() in row_tags), hashtags[0])
+            views = row.get("views") or row.get("videoViewCount") or row.get("video_view_count")
+            likes = row.get("likes") or row.get("likesCount") or row.get("like_count")
+            comments = row.get("comments") or row.get("commentsCount") or row.get("comment_count")
+            title = caption[:220] if caption else f"Public Instagram post by @{username}"
+            out.append({
+                "title": title,
+                "community": f"Instagram public hashtag #{tag}",
+                "score": likes or 0,
+                "comments": comments or 0,
+                "views": views,
+                "username": username,
+                "timestamp": posted.isoformat(),
+                "url": str(post_url),
+                "source": "Instagram public hashtag feed via Apify",
+            })
+        out.sort(key=lambda x: (public_metric_number(x.get("views")), public_metric_number(x.get("score")), public_metric_number(x.get("comments"))), reverse=True)
+        return out[:50], []
+    except Exception as e:
+        return [], ["Instagram public trend source (Apify): " + str(e)[:220]]
+
 
 class ProductParser(HTMLParser):
     def __init__(self):
@@ -208,9 +313,9 @@ def make_queries(trends, social, tiktok=None):
         if title and url:
             signals.append({
                 "title": title,
-                "source": "Reddit public hot posts",
+                "source": item.get("source") or "Reddit public hot posts",
                 "url": url,
-                "metric": f"score={item.get('score')}; comments={item.get('comments')}",
+                "metric": f"views={item.get('views')}; likes={item.get('score')}; comments={item.get('comments')}; posted={item.get('timestamp')}",
             })
     if not signals:
         return []
@@ -319,7 +424,9 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
              "## Live research status",
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
              "- Google Trends is search-interest context only; it does not qualify products as social trends.",
-             f"- Public Reddit hot-post signals fetched: {len(social)}",
+             f"- Public social-post signals fetched: {len(social)}",
+             f"- Instagram public hashtag signals: {sum(1 for p in social if p.get('source') == 'Instagram public hashtag feed via Apify')}",
+             f"- Reddit public hot-post signals: {sum(1 for p in social if p.get('source') == 'Reddit public hot posts')}",
              "- TikTok trend signals: not used, per the current platform instruction.",
              f"- Daraz listing candidates matched: {len(products)}",
              f"- Public product images hosted: {sum(bool(p.get('public_image_url')) for p in products)}",
@@ -332,7 +439,8 @@ def build_report(trends, social, tiktok, products, errors, queries_used=None):
     if trends:
         lines += ["## Google Trends Pakistan signals"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
     if social:
-        lines += ["## Public social discussion signals"] + [f"- [{p.get('community')}] {p['title']} (score {p.get('score')}, comments {p.get('comments')}) {p['url']}" for p in social[:12]] + [""]
+        lines += ["## Instagram public hashtag signals"] + [f"- [{p.get('community')}] {p['title']} (views {p.get('views', 'not provided')}, likes {p.get('score')}, comments {p.get('comments')}, posted {p.get('timestamp', 'date unavailable')}) {p['url']}" for p in social if p.get('source') == 'Instagram public hashtag feed via Apify'][:15] + [""]
+        lines += ["## Reddit public discussion signals"] + [f"- [{p.get('community')}] {p['title']} (score {p.get('score')}, comments {p.get('comments')}) {p['url']}" for p in social if p.get('source') == 'Reddit public hot posts'][:15] + [""]
     if products:
         lines += ["## Daraz candidates"]
         for i,p in enumerate(products,1):
@@ -351,6 +459,9 @@ def main():
     if err: errors.append("Google Trends: " + err)
     social, social_errors = fetch_social_signals()
     errors += ["Reddit feed: " + e for e in social_errors[:3]]
+    instagram_signals, instagram_errors = fetch_instagram_public_signals()
+    social.extend(instagram_signals)
+    errors += instagram_errors[:2]
     # TikTok is intentionally not accessed or used in this project phase.
     tiktok = []
     products = []
