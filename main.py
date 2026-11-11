@@ -124,7 +124,7 @@ def fetch_instagram_public_signals():
     payload = {
         "directUrls": [f"https://www.instagram.com/explore/tags/{tag}/" for tag in hashtags],
         "resultsType": "posts",
-        "resultsLimit": 10,
+        "resultsLimit": 2,
         "skipPinnedPosts": True,
         "onlyPostsNewerThan": "7 days",
     }
