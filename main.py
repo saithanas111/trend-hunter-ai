@@ -78,6 +78,23 @@ def fetch_social_signals():
     return out[:25], errors
 
 
+def public_metric_number(value):
+    if isinstance(value, (int, float)):
+        return float(value)
+    raw = str(value or "").strip().replace(",", "").upper()
+    try:
+        multiplier = 1
+        if raw.endswith("K"):
+            multiplier, raw = 1_000, raw[:-1]
+        elif raw.endswith("M"):
+            multiplier, raw = 1_000_000, raw[:-1]
+        elif raw.endswith("B"):
+            multiplier, raw = 1_000_000_000, raw[:-1]
+        return float(raw) * multiplier
+    except Exception:
+        return 0.0
+
+
 def parse_public_post_date(value):
     if value is None:
         return None
@@ -152,7 +169,7 @@ def fetch_instagram_public_signals():
                 "url": str(post_url),
                 "source": "Instagram public hashtag feed via Apify",
             })
-        out.sort(key=lambda x: (x.get("views") or 0, x.get("score") or 0, x.get("comments") or 0), reverse=True)
+        out.sort(key=lambda x: (public_metric_number(x.get("views")), public_metric_number(x.get("score")), public_metric_number(x.get("comments"))), reverse=True)
         return out[:50], []
     except Exception as e:
         return [], ["Instagram public trend source (Apify): " + str(e)[:220]]
