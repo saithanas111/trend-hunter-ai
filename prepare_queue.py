@@ -57,6 +57,7 @@ def main():
             "rating": product.get("rating") or old.get("rating", ""),
             "stock_status": product.get("stock_status") or old.get("stock_status", ""),
             "seller": product.get("seller") or old.get("seller", ""),
+            "seller_listing_consistent": bool(product.get("seller_listing_consistent", old.get("seller_listing_consistent", False))),
             "listing_verified_at": product.get("listing_verified_at") or old.get("listing_verified_at", ""),
             "trend_evidence": trend_evidence,
             "facebook_caption": copy.get("facebook_caption", ""),
@@ -91,7 +92,7 @@ def main():
     fields = [
         "id", "opportunity", "product", "brand", "daraz_listing_url", "search_query",
         "listing_verification", "exact_variant", "exact_match_confirmed", "current_price",
-        "sold_count", "rating", "stock_status", "seller", "listing_verified_at",
+        "sold_count", "rating", "stock_status", "seller", "seller_listing_consistent", "listing_verified_at",
         "trend_evidence", "facebook_caption", "instagram_caption", "caption", "reel_hook",
         "video_script", "hashtags", "affiliate_url", "affiliate_link_verified",
         "affiliate_link_verified_at", "public_image_url", "public_video_url",
