@@ -1,5 +1,6 @@
 """Fail-closed publishing gate for verified, brand-distinct Instagram Reels."""
 
+from datetime import datetime, timedelta, timezone
 from urllib.parse import urlparse
 
 
@@ -18,6 +19,20 @@ def _https_host(value, allowed_suffixes):
             for suffix in allowed_suffixes
         )
     except Exception:
+        return False
+
+
+def _recent_iso(value, max_age):
+    if not _text(value):
+        return False
+    try:
+        raw = value.strip().replace("Z", "+00:00")
+        stamp = datetime.fromisoformat(raw)
+        if stamp.tzinfo is None:
+            stamp = stamp.replace(tzinfo=timezone.utc)
+        age = datetime.now(timezone.utc) - stamp.astimezone(timezone.utc)
+        return timedelta(0) <= age <= max_age
+    except (TypeError, ValueError):
         return False
 
 
@@ -45,6 +60,8 @@ def validate_queue_payload(payload):
 
         item_errors = []
         brand = str(item.get("brand") or "").strip()
+        if not _text(item.get("product")):
+            item_errors.append("product title is missing")
         if not brand or brand.casefold() in {"no brand", "unknown", "n/a", "none"}:
             item_errors.append("brand must be a real, named brand (not No Brand)")
         if not _https_host(item.get("daraz_listing_url"), {"daraz.pk"}):
@@ -59,15 +76,19 @@ def validate_queue_payload(payload):
             item_errors.append("sold_count must contain the displayed count or an explicit 'not displayed' note")
         if not _text(item.get("rating")):
             item_errors.append("rating must contain the displayed rating or an explicit 'not displayed' note")
-        stock = str(item.get("stock_status") or "").strip()
+        stock = str(item.get("stock_status") or "").strip().casefold()
         if not stock:
             item_errors.append("stock_status is missing")
-        elif any(word in stock.casefold() for word in ("out of stock", "unavailable", "not available")):
-            item_errors.append("stock_status is not publishable")
+        elif any(word in stock for word in ("out of stock", "unavailable", "not available", "unknown", "not checked")):
+            item_errors.append("stock_status is not verified as available")
+        elif not any(word in stock for word in ("in stock", "available", "limited stock", "almost sold out", "ready to ship")):
+            item_errors.append("stock_status must explicitly confirm availability")
         if not _text(item.get("seller")):
             item_errors.append("seller is missing")
-        if not _text(item.get("listing_verified_at")):
-            item_errors.append("listing_verified_at is missing")
+        if item.get("seller_listing_consistent") is not True:
+            item_errors.append("seller_listing_consistent must be true")
+        if not _recent_iso(item.get("listing_verified_at"), timedelta(hours=24)):
+            item_errors.append("listing_verified_at must be a valid check from the last 24 hours")
 
         evidence = item.get("trend_evidence")
         if not isinstance(evidence, dict):
@@ -75,12 +96,13 @@ def validate_queue_payload(payload):
         else:
             if not _text(evidence.get("title")):
                 item_errors.append("trend_evidence.title is missing")
-            if not _text(evidence.get("source_name")):
-                item_errors.append("trend_evidence.source_name is missing")
+            source_name = str(evidence.get("source_name") or "").casefold()
+            if not any(platform in source_name for platform in ("instagram", "facebook")):
+                item_errors.append("trend_evidence.source_name must identify Instagram or Facebook")
             if not _https_host(evidence.get("source_url"), {"instagram.com", "facebook.com"}):
                 item_errors.append("trend_evidence.source_url must be a direct public Instagram/Facebook post URL")
-            if not _text(evidence.get("observed_at")):
-                item_errors.append("trend_evidence.observed_at is missing")
+            if not _recent_iso(evidence.get("observed_at"), timedelta(days=7)):
+                item_errors.append("trend_evidence.observed_at must be a valid observation from the last 7 days")
             if not _text(evidence.get("metric")):
                 item_errors.append("trend_evidence.metric is missing")
 
@@ -88,8 +110,8 @@ def validate_queue_payload(payload):
             item_errors.append("affiliate_url must be a Daraz HTTPS affiliate URL")
         if item.get("affiliate_link_verified") is not True:
             item_errors.append("affiliate_link_verified must be true")
-        if not _text(item.get("affiliate_link_verified_at")):
-            item_errors.append("affiliate_link_verified_at is missing")
+        if not _recent_iso(item.get("affiliate_link_verified_at"), timedelta(hours=24)):
+            item_errors.append("affiliate_link_verified_at must be checked within the last 24 hours")
 
         if not _https_host(item.get("public_video_url"), {"githubusercontent.com", "cloudinary.com", "cloudfront.net"}):
             item_errors.append("public_video_url must be a public HTTPS video URL")
