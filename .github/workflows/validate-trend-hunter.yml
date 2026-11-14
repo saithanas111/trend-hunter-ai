@@ -12,6 +12,7 @@ on:
       - "publish_instagram.py"
       - "tests/**"
       - ".github/workflows/publish-instagram.yml"
+      - ".github/workflows/trend-hunter.yml"
       - ".github/workflows/validate-trend-hunter.yml"
 
 permissions:
