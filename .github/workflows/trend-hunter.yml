@@ -11,6 +11,9 @@ on:
       - "main.py"
       - "prepare_queue.py"
       - "generate_reel.py"
+      - "queue_gate.py"
+      - "validate_queue.py"
+      - "tests/**"
       - "daraz_candidates.json"
       - ".github/workflows/trend-hunter.yml"
   workflow_dispatch:
@@ -49,10 +52,11 @@ jobs:
       - name: Prepare structured content queue
         run: python prepare_queue.py
 
-      - name: Generate 2.5D image-motion Reels (not true 3D CGI)
+      - name: Skip legacy 2.5D image-motion renderer
         run: |
-          if ! command -v ffmpeg >/dev/null 2>&1; then sudo apt-get update && sudo apt-get install -y ffmpeg; fi
-          python generate_reel.py
+          echo "Legacy still-image zoom rendering is intentionally disabled."
+          echo "No true multi-angle 3D CGI renderer is configured; no substitute video will be generated."
+          echo "Only a reviewed true_3d_cgi asset can pass the publishing gate."
 
       - name: Validate queue safety
         run: python validate_queue.py
