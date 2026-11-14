@@ -20,6 +20,7 @@ jobs:
         env:
           AUTO_PUBLISH_ENABLED: ${{ secrets.AUTO_PUBLISH_ENABLED }}
           META_IG_USER_ID: ${{ secrets.META_IG_USER_ID }}
+          META_IG_EXPECTED_USERNAME: ${{ secrets.META_IG_EXPECTED_USERNAME }}
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
           META_GRAPH_VERSION: v23.0
         run: python publish_instagram.py
