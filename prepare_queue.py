@@ -39,26 +39,26 @@ def main():
             continue
         old = previous.get(product.get("url", ""), {})
         trend_evidence = normalize_trend_evidence(
-            product.get("trend_evidence") or old.get("trend_evidence")
+            product.get("trend_evidence")
         )
-        video_url = product.get("public_video_url") or old.get("public_video_url", "")
+        video_url = product.get("public_video_url", "")
         queue.append({
             "id": str(number),
             "opportunity": number,
             "product": product.get("title", ""),
-            "brand": product.get("brand") or old.get("brand", ""),
+            "brand": product.get("brand", ""),
             "daraz_listing_url": product.get("url", ""),
             "search_query": product.get("search_query", ""),
             "listing_verification": product.get("verification", ""),
-            "exact_variant": product.get("exact_variant") or old.get("exact_variant", ""),
-            "exact_match_confirmed": bool(product.get("exact_match_confirmed", old.get("exact_match_confirmed", False))),
-            "current_price": product.get("current_price") or old.get("current_price", ""),
-            "sold_count": product.get("sold_count") or old.get("sold_count", ""),
-            "rating": product.get("rating") or old.get("rating", ""),
-            "stock_status": product.get("stock_status") or old.get("stock_status", ""),
-            "seller": product.get("seller") or old.get("seller", ""),
-            "seller_listing_consistent": bool(product.get("seller_listing_consistent", old.get("seller_listing_consistent", False))),
-            "listing_verified_at": product.get("listing_verified_at") or old.get("listing_verified_at", ""),
+            "exact_variant": product.get("exact_variant", ""),
+            "exact_match_confirmed": bool(product.get("exact_match_confirmed", False)),
+            "current_price": product.get("current_price", ""),
+            "sold_count": product.get("sold_count", ""),
+            "rating": product.get("rating", ""),
+            "stock_status": product.get("stock_status", ""),
+            "seller": product.get("seller", ""),
+            "seller_listing_consistent": bool(product.get("seller_listing_consistent", False)),
+            "listing_verified_at": product.get("listing_verified_at", ""),
             "trend_evidence": trend_evidence,
             "facebook_caption": copy.get("facebook_caption", ""),
             "instagram_caption": copy.get("instagram_caption", ""),
@@ -66,20 +66,20 @@ def main():
             "reel_hook": copy.get("reel_hook", ""),
             "video_script": copy.get("video_script", ""),
             "hashtags": copy.get("hashtags", []),
-            "affiliate_url": product.get("affiliate_url") or old.get("affiliate_url", ""),
-            "affiliate_link_verified": bool(product.get("affiliate_link_verified", old.get("affiliate_link_verified", False))),
-            "affiliate_link_verified_at": product.get("affiliate_link_verified_at") or old.get("affiliate_link_verified_at", ""),
+            "affiliate_url": product.get("affiliate_url", ""),
+            "affiliate_link_verified": bool(product.get("affiliate_link_verified", False)),
+            "affiliate_link_verified_at": product.get("affiliate_link_verified_at", ""),
             "public_image_url": product.get("public_image_url", ""),
             "public_video_url": video_url,
-            "video_cover_url": product.get("video_cover_url") or old.get("video_cover_url", ""),
-            "video_type": product.get("video_type") or old.get("video_type") or ("2.5d_image_motion" if video_url else "not_generated"),
-            "video_reviewed": bool(product.get("video_reviewed", old.get("video_reviewed", False))),
-            "video_status": product.get("video_status") or old.get("video_status", "not_reviewed"),
-            "verified": bool(product.get("verified", old.get("verified", False))),
-            "approved": bool(product.get("approved", old.get("approved", False))),
-            "affiliate_status": product.get("affiliate_status") or old.get("affiliate_status", "unverified"),
+            "video_cover_url": product.get("video_cover_url", ""),
+            "video_type": product.get("video_type") or ("2.5d_image_motion" if video_url else "not_generated"),
+            "video_reviewed": bool(product.get("video_reviewed", False)),
+            "video_status": product.get("video_status") or "not_reviewed",
+            "verified": bool(product.get("verified", False)),
+            "approved": bool(product.get("approved", False)),
+            "affiliate_status": product.get("affiliate_status") or "unverified",
             "publishing_status": old.get("publishing_status", "draft_not_published"),
-            "approval_required": not bool(product.get("approved", old.get("approved", False))),
+            "approval_required": not bool(product.get("approved", False)),
         })
 
     payload = {
