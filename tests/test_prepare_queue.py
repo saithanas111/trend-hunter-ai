@@ -64,10 +64,10 @@ class PrepareQueueFreshnessTests(unittest.TestCase):
                 }]
             }), encoding="utf-8")
 
-            with patch.object(prepare_queue, "SOURCE", source), \\
-                 patch.object(prepare_queue, "QUEUE_JSON", queue_json), \\
-                 patch.object(prepare_queue, "QUEUE_CSV", queue_csv):
-                prepare_queue.main()
+            with patch.object(prepare_queue, "SOURCE", source):
+                with patch.object(prepare_queue, "QUEUE_JSON", queue_json):
+                    with patch.object(prepare_queue, "QUEUE_CSV", queue_csv):
+                        prepare_queue.main()
 
             item = json.loads(queue_json.read_text(encoding="utf-8"))["items"][0]
             self.assertFalse(item["verified"])
