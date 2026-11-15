@@ -79,71 +79,12 @@ def build_poster(item, image_path, poster_path):
 
 
 def main():
-    if not QUEUE.exists():
-        raise SystemExit("content_queue.json missing")
-    if not shutil.which("ffmpeg"):
-        raise SystemExit("ffmpeg is not available on this runner")
-    payload = json.loads(QUEUE.read_text(encoding="utf-8"))
-    VIDEO_DIR.mkdir(parents=True, exist_ok=True)
-    generated = 0
-
-    for item in payload.get("items", []):
-        listing = item.get("daraz_listing_url", "")
-        product_id_match = re.search(r"-i(\d+)", listing)
-        product_id = product_id_match.group(1) if product_id_match else item.get("id", "product")
-        image_path = ASSET_DIR / "products" / f"daraz-{product_id}.jpg"
-        if not image_path.exists():
-            continue
-        poster_path = VIDEO_DIR / f"daraz-{product_id}-cover.jpg"
-        video_path = VIDEO_DIR / f"daraz-{product_id}.mp4"
-        build_poster(item, image_path, poster_path)
-        # Cinematic tech-ad motion: smooth push-in, subtle diagonal camera drift,
-        # animated cyan light sweep, high-contrast finish and clean fade transitions.
-        vf = (
-            "zoompan=z='min(1.0+0.00032*on,1.115)':"
-            "x='iw/2-(iw/zoom/2)+sin(on/48)*18':"
-            "y='ih/2-(ih/zoom/2)+cos(on/55)*12':"
-            "d=360:s=1080x1920:fps=30,"
-            "drawbox=x='mod(t*820,1500)-220':y=0:w=150:h=1920:"
-            "color=0x56DFFF@0.13:t=fill,"
-            "drawbox=x='mod(t*820,1500)-238':y=0:w=10:h=1920:"
-            "color=white@0.34:t=fill,"
-            "eq=contrast=1.08:saturation=1.16:brightness=0.015,"
-            "vignette=PI/5,"
-            "fade=t=in:st=0:d=0.65,"
-            "fade=t=out:st=11:d=1,"
-            "format=yuv420p"
-        )
-        subprocess.run([
-            "ffmpeg", "-y", "-loop", "1", "-i", str(poster_path), "-t", "12",
-            "-vf", vf, "-r", "30", "-c:v", "libx264", "-preset", "veryfast",
-            "-crf", "21", "-movflags", "+faststart", str(video_path)
-        ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
-        item["public_video_url"] = f"{REPO_RAW}/assets/videos/{video_path.name}"
-        item["video_cover_url"] = f"{REPO_RAW}/assets/videos/{poster_path.name}"
-        generated += 1
-
-    QUEUE.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    csv_path = Path("content_queue.csv")
-    if csv_path.exists():
-        with csv_path.open("r", newline="", encoding="utf-8-sig") as handle:
-            reader = csv.DictReader(handle)
-            rows = list(reader)
-            fields = list(reader.fieldnames or [])
-        for field in ("public_video_url", "video_cover_url"):
-            if field not in fields:
-                fields.append(field)
-        by_id = {item.get("id"): item for item in payload.get("items", [])}
-        for row in rows:
-            item = by_id.get(row.get("id"), {})
-            row["public_video_url"] = item.get("public_video_url", "")
-            row["video_cover_url"] = item.get("video_cover_url", "")
-        with csv_path.open("w", newline="", encoding="utf-8-sig") as handle:
-            writer = csv.DictWriter(handle, fieldnames=fields)
-            writer.writeheader()
-            writer.writerows(rows)
-    print(f"Generated {generated} vertical product Reel videos.")
-
+    print(
+        "SKIPPED: this legacy renderer turns a still product image into a 2.5D zoom. "
+        "Trend Hunter requires a genuine multi-angle 3D CGI render. "
+        "No approved 3D renderer is configured, so no substitute video was generated."
+    )
+    return 0
 
 if __name__ == "__main__":
     main()
