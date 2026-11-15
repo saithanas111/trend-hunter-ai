@@ -315,7 +315,9 @@ def make_queries(trends, social, tiktok=None):
                 "title": title,
                 "source": item.get("source") or "Reddit public hot posts",
                 "url": url,
-                "metric": f"views={item.get('views')}; likes={item.get('score')}; comments={item.get('comments')}; posted={item.get('timestamp')}",
+                "metric": f"views={item.get('views')}; likes={item.get('score')}; comments={item.get('comments')}; post_date={item.get('timestamp')}",
+                "observed_at": datetime.now(timezone.utc).isoformat(),
+                "post_date": item.get("timestamp"),
             })
     if not signals:
         return []
