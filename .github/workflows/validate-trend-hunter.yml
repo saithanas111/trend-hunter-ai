@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "main.py"
+      - "trend_sources.py"
       - "prepare_queue.py"
       - "generate_reel.py"
       - "validate_queue.py"
@@ -31,4 +32,4 @@ jobs:
       - name: Run queue gate unit tests
         run: python -m unittest discover -s tests -v
       - name: Compile Python modules
-        run: python -m compileall -q main.py prepare_queue.py generate_reel.py validate_queue.py queue_gate.py publish_instagram.py tests
+        run: python -m compileall -q main.py trend_sources.py prepare_queue.py generate_reel.py validate_queue.py queue_gate.py publish_instagram.py tests
