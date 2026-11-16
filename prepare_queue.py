@@ -17,6 +17,7 @@ def normalize_trend_evidence(raw):
         "source_url": raw.get("source_url") or raw.get("url") or "",
         "observed_at": raw.get("observed_at") or raw.get("timestamp") or "",
         "metric": raw.get("metric") or raw.get("views") or "",
+        "tracker_url": raw.get("tracker_url") or raw.get("trend_tracker_url") or "",
     }
 
 
