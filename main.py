@@ -5,6 +5,7 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin
 from datetime import datetime, timezone
 from google import genai
+from trend_sources import extract_ignix_instagram_product_signals, IGNIX_PRODUCTS_URL
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY) if API_KEY else None
@@ -12,10 +13,6 @@ MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", os.environ.get("GEM
 CLOUDINARY = {k: os.environ.get(k) for k in ("CLOUDINARY_CLOUD_NAME", "CLOUDINARY_API_KEY", "CLOUDINARY_API_SECRET")}
 HEADERS = {"User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/125 Safari/537.36"}
 TRENDS_URL = "https://trends.google.com/trending/rss?geo=PK"
-REDDIT_FEEDS = [
-    "https://www.reddit.com/r/gadgets/hot.json?limit=15",
-    "https://www.reddit.com/r/DidntKnowIWantedThat/hot.json?limit=15",
-]
 APIFY_API_TOKEN = os.environ.get("APIFY_API_TOKEN", "").strip()
 INSTAGRAM_TREND_HASHTAGS = [x.strip().lstrip("#") for x in (
     os.environ.get("INSTAGRAM_TREND_HASHTAGS") or
@@ -42,41 +39,6 @@ def fetch_google_trends():
         return [], str(e)[:200]
 
 
-
-RESEARCHED_DARAZ_MATCHES = {
-    "xiaomi 120w 67w 33w turbo charger cable": [{
-        "title": "100% Original Xiaomi 120W, 67W, 33W Turbo Charger Cable 6A",
-        "url": "https://www.daraz.pk/products/13-1211s-10-10-10s-9-100-w-120w-33w-67w-120w-6a-i491483422.html",
-        "affiliate_url": "https://s.daraz.pk/s.230Dt?cc",
-        "source_image_url": "https://img.drz.lazcdn.com/g/kf/S852f26d5ebd04777b9604812e87f54c0I.jpg_720x720q80.jpg_.webp",
-        "source": "User-selected Daraz affiliate product; public Daraz listing image",
-        "verification": "User confirmed their affiliate shortlink is for the Xiaomi Turbo cable shown in their Daraz screenshot. A public Daraz search snapshot on 2026-11-07 showed a matching listing at Rs. 549, 4.9/5 from 523 ratings and 2.4K sold, seller E-Z Cart; user's screenshot showed Rs. 527. Price may vary. Product authenticity and exact compatibility are not independently verified."
-    }],
-    "90 degree USB C elbow charging cable": [{
-        "title": "Essager 7A USB Type C Cable 90 Degree For 100W Fast Charging Cord",
-        "url": "https://www.daraz.pk/products/7-90-100-i1954838080.html",
-        "source_image_url": "https://img.drz.lazcdn.com/g/kf/S84b4d1b7bff947af99284def5cb4a3a0Y.jpg_720x720q80.jpg_.webp",
-        "source": "Daraz Pakistan public product and category pages; manually researched current match",
-        "verification": "Category-level match to the viral TikTok 90-degree 100W cable trend (not the same brand/model). Daraz snapshot 2026-11-07: Rs 1,320; 5.0/5 from 32 ratings; about 1.0K sold; seller Buy More Save More Store; seller positive rating 87%; ship-on-time 100%; 14-day easy return; no warranty. Listing stock and affiliate eligibility still require live/account verification.",
-    }]
-}
-
-def fetch_social_signals():
-    out, errors = [], []
-    for url in REDDIT_FEEDS:
-        try:
-            data = json.loads(fetch_url(url).decode("utf-8"))
-            for child in data.get("data", {}).get("children", []):
-                p = child.get("data", {})
-                if p.get("title") and not p.get("stickied"):
-                    out.append({"title": p["title"][:220], "community": p.get("subreddit"),
-                                "score": p.get("score"), "comments": p.get("num_comments"),
-                                "url": "https://www.reddit.com" + p.get("permalink", ""),
-                                "source": "Reddit public hot posts"})
-        except Exception as e:
-            errors.append(str(e)[:150])
-    out.sort(key=lambda x: (x.get("score") or 0) + 2*(x.get("comments") or 0), reverse=True)
-    return out[:25], errors
 
 
 def public_metric_number(value):
@@ -178,6 +140,23 @@ def fetch_instagram_public_signals():
         return [], ["Instagram public trend source (Apify): " + str(e)[:220]]
 
 
+def fetch_ignix_instagram_public_signals():
+    """Read the current public Instagram product-trend tracker; no other social network."""
+    try:
+        page = fetch_url(IGNIX_PRODUCTS_URL, 25).decode("utf-8", "ignore")
+        signals = extract_ignix_instagram_product_signals(
+            page, observed_at=datetime.now(timezone.utc).isoformat()
+        )
+        if not signals:
+            return [], [
+                "Ignix tracker was reachable but exposed no direct public Instagram Reel permalink "
+                "alongside its product list and view metric; it was excluded as publishable trend evidence."
+            ]
+        return signals, []
+    except Exception as e:
+        return [], ["Ignix public Instagram trend tracker: " + str(e)[:220]]
+
+
 class ProductParser(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -211,8 +190,6 @@ def search_daraz(query, limit=4):
     special_tags = {
         "mini digital vlogging camera": ["mini-vlogger-camera", "mini-digital-camera-keychain"],
         "mini keychain digital camera": ["mini-digital-camera-keychain", "mini-keychain-cameras"],
-        "tiktok scrolling remote control": ["tiktok-scroll-remote", "bluetooth-tiktok-remote-control"],
-        "90 degree usb c elbow charging cable": ["usb-c-cable-90-degree", "usb-c-to-c-angled-cable", "90-degree-micro-usb-cable"],
         "fitness tracker silent alarm": ["fitness-tracker", "fitness-band"],
         "5000mah mini power bank": ["mini-power-bank", "power-bank-5000mah"],
     }
@@ -302,7 +279,7 @@ def parse_json(text, kind):
     if not match: raise ValueError("Gemini did not return valid JSON.")
     return json.loads(match.group(0))
 
-def make_queries(trends, social, tiktok=None):
+def make_queries(trends, social):
     """Return only product queries tied to an exact live signal in the supplied sources."""
     # Google Trends is search-interest context, not social-platform proof.
     # Only live public social-platform posts may qualify a product candidate.
@@ -313,8 +290,9 @@ def make_queries(trends, social, tiktok=None):
         if title and url:
             signals.append({
                 "title": title,
-                "source": item.get("source") or "Reddit public hot posts",
+                "source": item.get("source") or "Instagram public post",
                 "url": url,
+                "tracker_url": item.get("trend_tracker_url") or "",
                 "metric": f"views={item.get('views')}; likes={item.get('score')}; comments={item.get('comments')}; post_date={item.get('timestamp')}",
                 "observed_at": datetime.now(timezone.utc).isoformat(),
                 "post_date": item.get("timestamp"),
@@ -419,66 +397,95 @@ def upload_product_image_to_cloudinary(product):
     except Exception as e:
         return None, "Image hosting failed: " + str(e)[:180]
 
-def build_report(trends, social, tiktok, products, errors, queries_used=None):
+def build_report(trends, social, products, errors, queries_used=None):
     lines = ["# Trend Hunter AI Report", "",
              "**Generated:** " + datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"), "",
              "**AI models attempted:** " + ", ".join(MODELS), "",
              "## Live research status",
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
              "- Google Trends is search-interest context only; it does not qualify products as social trends.",
-             f"- Public social-post signals fetched: {len(social)}",
+             f"- Instagram public social-post signals fetched: {len(social)}",
              f"- Instagram public hashtag signals: {sum(1 for p in social if p.get('source') == 'Instagram public hashtag feed via Apify')}",
-             f"- Reddit public hot-post signals: {sum(1 for p in social if p.get('source') == 'Reddit public hot posts')}",
-             "- TikTok trend signals: not used, per the current platform instruction.",
+             f"- Instagram public trend-tracker signals with direct Reel URLs: {sum(1 for p in social if p.get('source') == 'Instagram public product Reel via Ignix tracker')}",
+             "- Only Instagram and Facebook are in scope for social activity; no other social network is used.",
              f"- Daraz listing candidates matched: {len(products)}",
-             f"- Public product images hosted: {sum(bool(p.get('public_image_url')) for p in products)}",
+             f"- Public product images hosted after verification: {sum(bool(p.get('public_image_url')) for p in products)}",
              "- Trend/search signals are not proof of Pakistan sales.",
              "- Daraz listing extraction does not verify seller quality, price, stock, reviews, delivery or affiliate eligibility.",
              "- Affiliate deeplinks are not generated; no supported Daraz affiliate API has been confirmed.",
+             "- Content copy and product images are created only after fresh listing and affiliate verification.",
              "- This workflow does not publish social posts.", ""]
     if queries_used:
-        lines += ["## Daraz search queries generated from live signals"] + [f"- {q}" for q in queries_used] + [""]
+        lines += ["## Daraz search queries generated from live Instagram signals"] + [f"- {q}" for q in queries_used] + [""]
     if trends:
-        lines += ["## Google Trends Pakistan signals"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
+        lines += ["## Google Trends Pakistan context (not used as social-trend proof)"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
     if social:
         lines += ["## Instagram public hashtag signals"] + [f"- [{p.get('community')}] {p['title']} (views {p.get('views', 'not provided')}, likes {p.get('score')}, comments {p.get('comments')}, posted {p.get('timestamp', 'date unavailable')}) {p['url']}" for p in social if p.get('source') == 'Instagram public hashtag feed via Apify'][:15] + [""]
-        lines += ["## Reddit public discussion signals"] + [f"- [{p.get('community')}] {p['title']} (score {p.get('score')}, comments {p.get('comments')}) {p['url']}" for p in social if p.get('source') == 'Reddit public hot posts'][:15] + [""]
+        lines += ["## Instagram public product-tracker signals"] + [f"- {p['title']} ({p.get('trend_metric') or p.get('views') or 'view metric unavailable'}); direct Reel: {p['url']}; tracker: {p.get('trend_tracker_url') or 'not recorded'}" for p in social if p.get('source') == 'Instagram public product Reel via Ignix tracker'][:15] + [""]
     if products:
         lines += ["## Daraz candidates"]
         for i,p in enumerate(products,1):
             lines += [f"### Candidate {i}: {p['title']}", f"- Search query: {p['search_query']}",
                       f"- Listing: {p['url']}", f"- Verification: {p['verification']}",
                       f"- Trend evidence: {json.dumps(p.get('trend_evidence') or {}, ensure_ascii=False)}",
+                      f"- Content status: {p.get('content_status') or 'not created'}",
                       f"- Public image: {p.get('public_image_url') or 'not available'}", ""]
     else:
         lines += ["## Daraz matching result", "No reliable Daraz listing candidates extracted; no generic ideas substituted.", ""]
     lines += ["## Errors / limitations"] + ([f"- {e}" for e in errors] if errors else ["- None recorded."])
     return "\n".join(lines) + "\n"
 
+
+def product_ready_for_content(product):
+    """Require fresh, explicit listing and affiliate verification before copy/media."""
+    if not isinstance(product, dict):
+        return False
+    if not all(product.get(flag) is True for flag in (
+        "verified", "exact_match_confirmed", "seller_listing_consistent", "affiliate_link_verified"
+    )):
+        return False
+    brand = str(product.get("brand") or "").strip().casefold()
+    if not brand or brand in {"no brand", "unknown", "n/a", "none"}:
+        return False
+    for field in ("exact_variant", "current_price", "sold_count", "rating", "seller", "stock_status"):
+        if not str(product.get(field) or "").strip():
+            return False
+    stock = str(product.get("stock_status") or "").casefold()
+    if not any(term in stock for term in ("in stock", "available", "limited stock", "ready to ship")):
+        return False
+    for field in ("listing_verified_at", "affiliate_link_verified_at"):
+        stamp = parse_public_post_date(product.get(field))
+        if not stamp:
+            return False
+        age = (datetime.now(timezone.utc) - stamp).total_seconds()
+        if age < 0 or age > 24 * 60 * 60:
+            return False
+    affiliate = urllib.parse.urlparse(str(product.get("affiliate_url") or ""))
+    if affiliate.scheme != "https" or not (affiliate.hostname or "").lower().endswith("daraz.pk"):
+        return False
+    return True
+
+
 def main():
     errors = []
     trends, err = fetch_google_trends()
     if err: errors.append("Google Trends: " + err)
-    social, social_errors = fetch_social_signals()
-    errors += ["Reddit feed: " + e for e in social_errors[:3]]
+    social = []
     instagram_signals, instagram_errors = fetch_instagram_public_signals()
     social.extend(instagram_signals)
     errors += instagram_errors[:2]
-    # TikTok is intentionally not accessed or used in this project phase.
-    tiktok = []
+    tracker_signals, tracker_errors = fetch_ignix_instagram_public_signals()
+    social.extend(tracker_signals)
+    errors += tracker_errors[:2]
     products = []
     queries_used = []
     try:
         query_items = make_queries(trends, social)
         queries_used = [item["query"] for item in query_items]
-        if not query_items: errors.append("No product queries were defensibly linked to a live public social post.")
+        if not query_items: errors.append("No product queries were defensibly linked to a direct public Instagram post.")
         for candidate in query_items:
             q = candidate["query"]
             evidence = candidate["trend_evidence"]
-            researched_key = q.strip().casefold()
-            if researched_key in RESEARCHED_DARAZ_MATCHES:
-                products.extend([dict(item, search_query=q, trend_evidence=evidence) for item in RESEARCHED_DARAZ_MATCHES[researched_key]])
-                continue
             matches, e = search_daraz(q)
             if e: errors.append(f"Daraz search '{q}': {e}")
             for match in matches:
@@ -492,15 +499,21 @@ def main():
     for p in products: unique.setdefault(p["url"], p)
     products = list(unique.values())[:15]
     for p in products:
+        if not product_ready_for_content(p):
+            p["content_status"] = "not_created_listing_or_affiliate_verification_pending"
+            p["public_image_url"] = ""
+            continue
         try:
             p["social_copy"] = create_social_copy(p)
+            p["content_status"] = "copy_created_after_verification"
         except Exception as e:
             p["social_copy"] = fallback_social_copy(p)
             p["social_copy_error"] = str(e)[:200]
+            p["content_status"] = "verified_product_copy_fallback"
         image_url, image_error = upload_product_image_to_cloudinary(p)
         p["public_image_url"] = image_url or ""
         if image_error: p["image_upload_error"] = image_error
-    report = build_report(trends, social, tiktok, products, errors, queries_used)
+    report = build_report(trends, social, products, errors, queries_used)
     if queries_used:
         print("Daraz search queries: " + " | ".join(queries_used))
     with open("trend_report.md","w",encoding="utf-8") as f: f.write(report)
@@ -508,6 +521,7 @@ def main():
         json.dump({"generated_at":datetime.now(timezone.utc).isoformat(),"count":len(products),"items":products},f,ensure_ascii=False,indent=2)
     print(report)
     print(f"Saved {len(products)} Daraz listing candidates.")
+
 
 if __name__ == "__main__":
     main()
