@@ -5,7 +5,9 @@ Trend Hunter is a Pakistan-focused affiliate research assistant for **Trending F
 ## What it does now
 
 - Fetches the public Google Trends Pakistan RSS feed when available.
-- Uses Gemini to create a dated product-opportunity report with ready-to-edit Facebook, Instagram and TikTok copy.
+- Uses Gemini to create a dated product-opportunity report for the connected Facebook Page and Instagram professional profile only.
+- Uses public Instagram product-trend signals only when a direct public Reel permalink, product mention and observable view metric are present; Google Trends is context, not social-trend proof.
+- Unverified Daraz candidates remain research-only. Captions and product media are not created until exact listing, stock, seller and affiliate-link checks are fresh and explicitly verified.
 - Clearly separates trend signals from unverified product hypotheses.
 - Saves reports as `trend_report.md` and archives them in `reports/` through GitHub Actions.
 - Provides a FastAPI chat backend at `/chat` and a simple mobile-friendly chat page at `/`.
@@ -13,8 +15,9 @@ Trend Hunter is a Pakistan-focused affiliate research assistant for **Trending F
 ## Important limits
 
 - Google Trends search interest is not proof that a product sells.
-- The app does **not** yet connect to Daraz's private affiliate account or automatically verify listings, commission rates, product URLs, orders, or earnings.
+- The app does **not** yet connect to Daraz's private affiliate account or automatically verify listings, commission rates, product URLs, orders, or earnings. No affiliate URL is invented or reused from an older product.
 - The report generator does **not** automatically publish posts to social media. Social publishing requires authorized platform APIs and account permissions.
+- The project does not collect TikTok or Reddit trend data; only Facebook and Instagram are in scope.
 - Never put API keys in source code or commit them to Git.
 
 ## Required secret
