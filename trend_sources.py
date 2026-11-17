@@ -6,7 +6,7 @@ import re
 
 IGNIX_PRODUCTS_URL = "https://ignix.social/trends/products"
 INSTAGRAM_POST_RE = re.compile(
-    r"https?://(?:www\\.)?instagram\\.com/(?:p|reel|tv)/[A-Za-z0-9_-]+/?",
+    r"https?://(?:www\.)?instagram\.com/(?:p|reel|tv)/[A-Za-z0-9_-]+/?",
     re.IGNORECASE,
 )
 
@@ -23,19 +23,19 @@ class _VisibleText(HTMLParser):
 def _visible_text(fragment):
     parser = _VisibleText()
     parser.feed(fragment)
-    return re.sub(r"\\s+", " ", " ".join(parser.parts)).strip()
+    return re.sub(r"\s+", " ", " ".join(parser.parts)).strip()
 
 
 def _relative_performance(text, username):
     """Return a creator-specific x-usual ratio; missing evidence fails closed."""
-    matches = re.findall(r"([0-9]+(?:\\.[0-9]+)?)\\s*[×x]\\s*usual", text, re.IGNORECASE)
+    matches = re.findall(r"([0-9]+(?:\.[0-9]+)?)\s*[×x]\s*usual", text, re.IGNORECASE)
     if len(matches) == 1:
         return float(matches[0])
     if username:
         summary = re.search(
-            r"(?:furthest|most)\\s+above\\s+usual\\s*@"
+            r"(?:furthest|most)\s+above\s+usual\s*@"
             + re.escape(username)
-            + r"\\s*([0-9]+(?:\\.[0-9]+)?)\\s*[×x]\\s*usual",
+            + r"\s*([0-9]+(?:\.[0-9]+)?)\s*[×x]\s*usual",
             text,
             re.IGNORECASE,
         )
@@ -46,7 +46,7 @@ def _relative_performance(text, username):
 
 def extract_ignix_instagram_product_signals(page_html, observed_at=None):
     """Accept only direct Instagram posts with a product list, views and >1x usual."""
-    raw = unescape(str(page_html or "")).replace("\\\\/", "/").replace("\\\\u002F", "/")
+    raw = unescape(str(page_html or "")).replace("\\/", "/").replace("\\u002F", "/")
     visible = _visible_text(raw)
     start = re.search(r"Rising on Instagram", visible, re.IGNORECASE)
     if not start:
@@ -65,11 +65,11 @@ def extract_ignix_instagram_product_signals(page_html, observed_at=None):
         if not re.search(r"Rising on Instagram", context_text, re.IGNORECASE):
             continue
         products_match = re.search(
-            r"Products:\\s*(.{1,800}?)(?:\\s+#|$)", context_text, re.IGNORECASE
+            r"Products:\s*(.{1,800}?)(?:\s+#|$)", context_text, re.IGNORECASE
         )
-        views_match = re.search(r"([\\d,.]+\\s*[KMB]?)\\s+views", context_text, re.IGNORECASE)
+        views_match = re.search(r"([\d,.]+\s*[KMB]?)\s+views", context_text, re.IGNORECASE)
         creator_match = re.search(
-            r"@([A-Za-z0-9._]+)\\s*[·•]\\s*([\\d,.]+\\s*[KMB]?)\\s+followers",
+            r"@([A-Za-z0-9._]+)\s*[·•]\s*([\d,.]+\s*[KMB]?)\s+followers",
             context_text,
             re.IGNORECASE,
         )
@@ -88,9 +88,9 @@ def extract_ignix_instagram_product_signals(page_html, observed_at=None):
             continue
         seen.add(url)
 
-        product_list = re.sub(r"\\s+", " ", products_match.group(1)).strip(" .;")
-        views = re.sub(r"\\s+", "", views_match.group(1)).upper()
-        followers = re.sub(r"\\s+", "", creator_match.group(2)).upper()
+        product_list = re.sub(r"\s+", " ", products_match.group(1)).strip(" .;")
+        views = re.sub(r"\s+", "", views_match.group(1)).upper()
+        followers = re.sub(r"\s+", "", creator_match.group(2)).upper()
         metric = (
             f"{ratio:g}x creator usual; {views} views in the current weekly "
             f"Instagram product-trend snapshot; creator followers {followers}"
