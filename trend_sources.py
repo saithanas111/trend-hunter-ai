@@ -46,7 +46,7 @@ def _relative_performance(text, username):
 
 def extract_ignix_instagram_product_signals(page_html, observed_at=None):
     """Accept only direct Instagram posts with a product list, views and >1x usual."""
-    raw = unescape(str(page_html or "")).replace("\\/", "/").replace("\\u002F", "/")
+    raw = unescape(str(page_html or "")).replace("\\\\/", "/").replace("\\\\u002F", "/")
     visible = _visible_text(raw)
     start = re.search(r"Rising on Instagram", visible, re.IGNORECASE)
     if not start:
