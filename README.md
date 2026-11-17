@@ -6,7 +6,7 @@ Trend Hunter is a Pakistan-focused affiliate research assistant for **Trending F
 
 - Fetches the public Google Trends Pakistan RSS feed when available.
 - Uses Gemini to create a dated product-opportunity report for the connected Facebook Page and Instagram professional profile only.
-- Uses public Instagram product-trend signals only when a direct public Reel permalink, product mention and observable view metric are present; Google Trends is context, not social-trend proof.
+- Uses public Instagram product-trend signals only when a direct public Reel permalink, product mention, observable view metric and creator-relative performance above 1.0x usual are present; raw views alone do not qualify. Google Trends is context, not social-trend proof.
 - Unverified Daraz candidates remain research-only. Captions and product media are not created until exact listing, stock, seller and affiliate-link checks are fresh and explicitly verified.
 - Clearly separates trend signals from unverified product hypotheses.
 - Saves reports as `trend_report.md` and archives them in `reports/` through GitHub Actions.
