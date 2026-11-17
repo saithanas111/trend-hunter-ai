@@ -293,7 +293,7 @@ def make_queries(trends, social):
                 "source": item.get("source") or "Instagram public post",
                 "url": url,
                 "tracker_url": item.get("trend_tracker_url") or "",
-                "metric": f"views={item.get('views')}; likes={item.get('score')}; comments={item.get('comments')}; post_date={item.get('timestamp')}",
+                "metric": item.get("trend_metric") or f"views={item.get('views')}; likes={item.get('score')}; comments={item.get('comments')}; post_date={item.get('timestamp')}",
                 "observed_at": datetime.now(timezone.utc).isoformat(),
                 "post_date": item.get("timestamp"),
             })
