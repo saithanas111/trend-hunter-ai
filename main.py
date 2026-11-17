@@ -149,8 +149,8 @@ def fetch_ignix_instagram_public_signals():
         )
         if not signals:
             return [], [
-                "Ignix tracker was reachable but exposed no direct public Instagram Reel permalink "
-                "alongside its product list and view metric; it was excluded as publishable trend evidence."
+                "Ignix tracker was reachable but exposed no direct public Instagram Reel with a product list, view metric "
+                "and creator-relative performance above 1.0x usual; it was excluded as trend evidence."
             ]
         return signals, []
     except Exception as e:
@@ -403,7 +403,7 @@ def build_report(trends, social, products, errors, queries_used=None):
              "**AI models attempted:** " + ", ".join(MODELS), "",
              "## Live research status",
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
-             "- Google Trends is search-interest context only; it does not qualify products as social trends.",
+             "- Google Trends is search-interest context only; it does not qualify products as social trends.",\n             "- Instagram product-trend posts must beat the creator baseline by more than 1.0x usual; raw views alone do not qualify.",
              f"- Instagram public social-post signals fetched: {len(social)}",
              f"- Instagram public hashtag signals: {sum(1 for p in social if p.get('source') == 'Instagram public hashtag feed via Apify')}",
              f"- Instagram public trend-tracker signals with direct Reel URLs: {sum(1 for p in social if p.get('source') == 'Instagram public product Reel via Ignix tracker')}",
