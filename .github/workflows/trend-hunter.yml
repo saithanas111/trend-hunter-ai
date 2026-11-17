@@ -9,6 +9,7 @@ on:
     branches: [main]
     paths:
       - "main.py"
+      - "trend_sources.py"
       - "prepare_queue.py"
       - "generate_reel.py"
       - "queue_gate.py"
