@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 from queue_gate import validate_queue_payload
 
 GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v23.0")
+TARGET_INSTAGRAM_USERNAME = "official.trending.finds"
 QUEUE_PATH = os.getenv("CONTENT_QUEUE_PATH", "content_queue.json")
 STATUS_PATH = os.getenv("PUBLISH_STATUS_PATH", "publish_status.json")
 
@@ -32,6 +33,24 @@ def request_json(url, data=None):
     except urllib.error.HTTPError as exc:
         body = exc.read().decode("utf-8", "replace")[:1000]
         raise RuntimeError(f"Meta Graph API HTTP {exc.code}: {body}") from exc
+
+
+def validate_target_username(expected_username, actual_username=None):
+    """Fail closed unless both configuration and live Meta identity match the intended profile."""
+    expected = str(expected_username or "").strip().lstrip("@").casefold()
+    if expected != TARGET_INSTAGRAM_USERNAME:
+        raise RuntimeError(
+            "Configured Instagram target does not match the intended project profile "
+            f"@{TARGET_INSTAGRAM_USERNAME}."
+        )
+    if actual_username is not None:
+        actual = str(actual_username or "").strip().lstrip("@").casefold()
+        if actual != TARGET_INSTAGRAM_USERNAME:
+            raise RuntimeError(
+                "Connected Instagram identity mismatch: "
+                f"expected @{TARGET_INSTAGRAM_USERNAME}, received @{actual or 'unknown'}."
+            )
+    return TARGET_INSTAGRAM_USERNAME
 
 
 def wait_for_video_container(container_id, token):
@@ -61,8 +80,10 @@ def main():
     if not user_id or not token:
         print("Missing META_IG_USER_ID or META_ACCESS_TOKEN.", file=sys.stderr)
         return 2
-    if not expected_username:
-        print("Missing META_IG_EXPECTED_USERNAME; refusing to publish to an unconfirmed profile.", file=sys.stderr)
+    try:
+        validate_target_username(expected_username)
+    except RuntimeError as exc:
+        print(f"PUBLISH BLOCKED: {exc}", file=sys.stderr)
         return 2
     if not os.path.exists(QUEUE_PATH):
         print(f"Queue not found: {QUEUE_PATH}", file=sys.stderr)
@@ -85,10 +106,14 @@ def main():
     )
     profile = request_json(profile_url)
     actual_username = str(profile.get("username") or "").strip().lstrip("@").casefold()
-    if str(profile.get("id") or "") != user_id or actual_username != expected_username:
+    try:
+        validate_target_username(expected_username, actual_username)
+    except RuntimeError as exc:
+        print(f"PUBLISH BLOCKED: {exc}", file=sys.stderr)
+        return 2
+    if str(profile.get("id") or "") != user_id:
         print(
-            "PUBLISH BLOCKED: connected Instagram identity mismatch. "
-            f"Expected @{expected_username}; Meta returned @{actual_username or 'unknown'}.",
+            "PUBLISH BLOCKED: Meta returned a different Instagram user ID than META_IG_USER_ID.",
             file=sys.stderr,
         )
         return 2
