@@ -34,6 +34,7 @@ jobs:
           META_GRAPH_VERSION: v23.0
         run: python publish_instagram.py
       - name: Publish approved Facebook Page videos
+        if: always()
         env:
           FACEBOOK_AUTO_PUBLISH_ENABLED: ${{ secrets.FACEBOOK_AUTO_PUBLISH_ENABLED }}
           FACEBOOK_PAGE_ID: "1212885835249403"
@@ -41,6 +42,7 @@ jobs:
           META_GRAPH_VERSION: v23.0
         run: python publish_facebook.py
       - name: Save platform publishing status
+        if: always()
         run: |
           files=()
           for file in publish_status.json facebook_publish_status.json; do
