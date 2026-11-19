@@ -73,3 +73,16 @@ Before a queue item can publish, its JSON entry must explicitly contain:
 - A publicly accessible HTTPS `public_image_url` meeting Instagram's media requirements.
 
 New queue entries are always created with `verified: false` and `approved: false`. The publishing workflow is manual-dispatch only; it does not publish drafts automatically. Successful and failed attempts are recorded in `publish_status.json`.
+
+
+## Strict trend qualification and Meta publishing
+
+- Raw Instagram hashtag hits are research observations, not trends. They are excluded from product matching unless a direct public Instagram product Reel is independently verified as above the creator's usual performance.
+- The current product-trend gate requires a direct Instagram post URL, an explicit product list, a view metric, and creator-relative performance greater than 1.0x usual.
+- Google Trends is search context only; it never qualifies a social product trend.
+- The follow-up Meta publishing workflow runs after a successful Trend Hunter workflow. It publishes only items that pass `queue_gate.py`, including exact Daraz brand/variant, fresh listing checks, verified affiliate URL, and a reviewed `true_3d_cgi` video.
+- Instagram is locked to `@official.trending.finds`. Facebook publishing is locked to Page `Trending Finds` (ID `1212885835249403`). A live identity mismatch stops publishing.
+- Instagram publishing requires repository secrets `AUTO_PUBLISH_ENABLED=true`, `META_IG_USER_ID`, and `META_ACCESS_TOKEN`.
+- Facebook Page video publishing requires repository secrets `FACEBOOK_AUTO_PUBLISH_ENABLED=true` and `FACEBOOK_PAGE_ACCESS_TOKEN`. The Page ID is fixed in the workflow and publisher.
+- No 2.5D still-image zoom is accepted as a video. Profile editing and automatic Meta DMs are not configured.
+- Publishing status is keyed by the Daraz listing URL, not the queue position, to avoid suppressing a different product after queue reordering.
