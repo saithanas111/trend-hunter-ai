@@ -422,7 +422,7 @@ def build_report(trends, social, products, errors, queries_used=None):
              "- Daraz listing extraction does not verify seller quality, price, stock, reviews, delivery or affiliate eligibility.",
              "- Affiliate deeplinks are not generated; no supported Daraz affiliate API has been confirmed.",
              "- Content copy and product images are created only after fresh listing and affiliate verification.",
-             "- A follow-up workflow publishes only approved, fully verified true-3D CGI Instagram Reels and Facebook Page videos when platform-specific enable flags and Meta credentials are configured.",
+             "- A follow-up workflow publishes only approved, fully verified vertical 9:16 true-3D CGI Instagram Reels and Facebook Page videos with a multi-angle quality manifest, when platform-specific enable flags and Meta credentials are configured.",
              "- Profile editing and Meta DM sending are not configured in this workflow.",
              ""]
     if queries_used:
