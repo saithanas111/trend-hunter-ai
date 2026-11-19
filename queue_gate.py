@@ -1,6 +1,7 @@
 """Fail-closed publishing gate for verified, brand-distinct Instagram Reels."""
 
 from datetime import datetime, timedelta, timezone
+import re
 from urllib.parse import urlparse
 
 
@@ -103,8 +104,17 @@ def validate_queue_payload(payload):
                 item_errors.append("trend_evidence.source_url must be a direct public Instagram/Facebook post URL")
             if not _recent_iso(evidence.get("observed_at"), timedelta(days=7)):
                 item_errors.append("trend_evidence.observed_at must be a valid observation from the last 7 days")
-            if not _text(evidence.get("metric")):
+            metric = str(evidence.get("metric") or "")
+            if not _text(metric):
                 item_errors.append("trend_evidence.metric is missing")
+            else:
+                ratio_match = re.search(
+                    r"([0-9]+(?:\.[0-9]+)?)\s*[×x]\s*creator\s+usual",
+                    metric,
+                    re.IGNORECASE,
+                )
+                if not ratio_match or float(ratio_match.group(1)) <= 1.0:
+                    item_errors.append("trend_evidence.metric must explicitly show more than 1.0x creator usual")
 
         if not _https_host(item.get("affiliate_url"), {"daraz.pk"}):
             item_errors.append("affiliate_url must be a Daraz HTTPS affiliate URL")
@@ -115,10 +125,26 @@ def validate_queue_payload(payload):
 
         if not _https_host(item.get("public_video_url"), {"githubusercontent.com", "cloudinary.com", "cloudfront.net"}):
             item_errors.append("public_video_url must be a public HTTPS video URL")
+        else:
+            video_path = urlparse(str(item.get("public_video_url"))).path.lower()
+            if not video_path.endswith((".mp4", ".mov")):
+                item_errors.append("public_video_url must point to an MP4 or MOV video file")
         if item.get("video_type") != "true_3d_cgi":
             item_errors.append("video_type must be true_3d_cgi; 2.5D image motion is not accepted")
         if item.get("video_reviewed") is not True:
             item_errors.append("video_reviewed must be true")
+        if item.get("video_aspect_ratio") != "9:16":
+            item_errors.append("video_aspect_ratio must be 9:16 vertical")
+        quality = item.get("video_quality_checks")
+        if not isinstance(quality, dict):
+            item_errors.append("video_quality_checks manifest is missing")
+        else:
+            for check in ("3d_product_motion", "studio_lighting", "closeups", "transitions", "no_static_zoom"):
+                if quality.get(check) is not True:
+                    item_errors.append(f"video_quality_checks.{check} must be true")
+            angles = quality.get("camera_angles")
+            if not isinstance(angles, list) or len({str(angle).strip().casefold() for angle in angles if str(angle).strip()}) < 4:
+                item_errors.append("video_quality_checks.camera_angles must list at least four distinct angles")
 
         for field in ("instagram_caption", "facebook_caption"):
             caption = str(item.get(field) or "")

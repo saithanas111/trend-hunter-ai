@@ -5,7 +5,11 @@ from html.parser import HTMLParser
 from urllib.parse import urljoin
 from datetime import datetime, timezone
 from google import genai
-from trend_sources import extract_ignix_instagram_product_signals, IGNIX_PRODUCTS_URL
+from trend_sources import (
+    extract_ignix_instagram_product_signals,
+    qualifies_instagram_product_signal,
+    IGNIX_PRODUCTS_URL,
+)
 
 API_KEY = os.environ.get("GEMINI_API_KEY")
 client = genai.Client(api_key=API_KEY) if API_KEY else None
@@ -285,6 +289,8 @@ def make_queries(trends, social):
     # Only live public social-platform posts may qualify a product candidate.
     signals = []
     for item in social:
+        if not qualifies_instagram_product_signal(item):
+            continue
         title = (item.get("title") or "").strip()
         url = (item.get("url") or "").strip()
         if title and url:
@@ -405,9 +411,10 @@ def build_report(trends, social, products, errors, queries_used=None):
              f"- Google Trends Pakistan topics fetched: {len(trends)}",
              "- Google Trends is search-interest context only; it does not qualify products as social trends.",
              "- Instagram product-trend posts must beat the creator baseline by more than 1.0x usual; raw views alone do not qualify.",
-             f"- Instagram public social-post signals fetched: {len(social)}",
-             f"- Instagram public hashtag signals: {sum(1 for p in social if p.get('source') == 'Instagram public hashtag feed via Apify')}",
-             f"- Instagram public trend-tracker signals with direct Reel URLs: {sum(1 for p in social if p.get('source') == 'Instagram public product Reel via Ignix tracker')}",
+             f"- Instagram public posts fetched for research: {len(social)}",
+             f"- Raw Instagram hashtag observations (not trend proof by themselves): {sum(1 for p in social if p.get('source') == 'Instagram public hashtag feed via Apify')}",
+             f"- Qualified Instagram product trends (direct Reel, product list, views, creator-relative >1.0x usual): {sum(1 for p in social if qualifies_instagram_product_signal(p))}",
+             "- Raw hashtag observations without creator-relative performance are excluded from product matching.",
              "- Only Instagram and Facebook are in scope for social activity; no other social network is used.",
              f"- Daraz listing candidates matched: {len(products)}",
              f"- Public product images hosted after verification: {sum(bool(p.get('public_image_url')) for p in products)}",
@@ -415,14 +422,16 @@ def build_report(trends, social, products, errors, queries_used=None):
              "- Daraz listing extraction does not verify seller quality, price, stock, reviews, delivery or affiliate eligibility.",
              "- Affiliate deeplinks are not generated; no supported Daraz affiliate API has been confirmed.",
              "- Content copy and product images are created only after fresh listing and affiliate verification.",
-             "- This workflow does not publish social posts.", ""]
+             "- A follow-up workflow publishes only approved, fully verified vertical 9:16 true-3D CGI Instagram Reels and Facebook Page videos with a multi-angle quality manifest, when platform-specific enable flags and Meta credentials are configured.",
+             "- Profile editing and Meta DM sending are not configured in this workflow.",
+             ""]
     if queries_used:
         lines += ["## Daraz search queries generated from live Instagram signals"] + [f"- {q}" for q in queries_used] + [""]
     if trends:
         lines += ["## Google Trends Pakistan context (not used as social-trend proof)"] + [f"- {p['topic']} (traffic: {p.get('approx_traffic') or 'not provided'})" for p in trends[:15]] + [""]
     if social:
-        lines += ["## Instagram public hashtag signals"] + [f"- [{p.get('community')}] {p['title']} (views {p.get('views', 'not provided')}, likes {p.get('score')}, comments {p.get('comments')}, posted {p.get('timestamp', 'date unavailable')}) {p['url']}" for p in social if p.get('source') == 'Instagram public hashtag feed via Apify'][:15] + [""]
-        lines += ["## Instagram public product-tracker signals"] + [f"- {p['title']} ({p.get('trend_metric') or p.get('views') or 'view metric unavailable'}); direct Reel: {p['url']}; tracker: {p.get('trend_tracker_url') or 'not recorded'}" for p in social if p.get('source') == 'Instagram public product Reel via Ignix tracker'][:15] + [""]
+        lines += ["## Raw Instagram hashtag observations (not trend-qualified)"] + [f"- [{p.get('community')}] {p['title']} (views {p.get('views', 'not provided')}, likes {p.get('score')}, comments {p.get('comments')}, posted {p.get('timestamp', 'date unavailable')}) {p['url']}" for p in social if p.get('source') == 'Instagram public hashtag feed via Apify'][:15] + [""]
+        lines += ["## Qualified Instagram product-trend signals"] + [f"- {p['title']} ({p.get('trend_metric') or 'relative performance unavailable'}); direct Reel: {p['url']}; tracker: {p.get('trend_tracker_url') or 'not recorded'}" for p in social if qualifies_instagram_product_signal(p)][:15] + [""]
     if products:
         lines += ["## Daraz candidates"]
         for i,p in enumerate(products,1):

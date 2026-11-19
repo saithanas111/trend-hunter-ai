@@ -1,13 +1,22 @@
-name: Publish approved Instagram queue
+name: Publish approved Meta queue
 
 on:
   workflow_dispatch:
+  workflow_run:
+    workflows: ["Trend Hunter AI"]
+    types: [completed]
+    branches: [main]
+
+concurrency:
+  group: trend-hunter-publish
+  cancel-in-progress: false
 
 permissions:
   contents: write
 
 jobs:
   publish:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Check out repository
@@ -16,7 +25,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Publish approved items
+      - name: Publish approved Instagram Reels
         env:
           AUTO_PUBLISH_ENABLED: ${{ secrets.AUTO_PUBLISH_ENABLED }}
           META_IG_USER_ID: ${{ secrets.META_IG_USER_ID }}
@@ -24,12 +33,26 @@ jobs:
           META_ACCESS_TOKEN: ${{ secrets.META_ACCESS_TOKEN }}
           META_GRAPH_VERSION: v23.0
         run: python publish_instagram.py
-      - name: Save publishing status
+      - name: Publish approved Facebook Page videos
+        if: always()
+        env:
+          FACEBOOK_AUTO_PUBLISH_ENABLED: ${{ secrets.FACEBOOK_AUTO_PUBLISH_ENABLED }}
+          FACEBOOK_PAGE_ID: "1212885835249403"
+          FACEBOOK_PAGE_ACCESS_TOKEN: ${{ secrets.FACEBOOK_PAGE_ACCESS_TOKEN }}
+          META_GRAPH_VERSION: v23.0
+        run: python publish_facebook.py
+      - name: Save platform publishing status
+        if: always()
         run: |
-          if [ -f publish_status.json ]; then
+          files=()
+          for file in publish_status.json facebook_publish_status.json daily_publish_log.json; do
+            if [ -f "$file" ]; then files+=("$file"); fi
+          done
+          if [ "${#files[@]}" -gt 0 ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add publish_status.json
-            git diff --cached --quiet || git commit -m "Record Instagram publishing status"
+            git add "${files[@]}"
+            git diff --cached --quiet || git commit -m "Record Meta publishing status"
+            git pull --rebase origin main
             git push
           fi

@@ -11,6 +11,38 @@ INSTAGRAM_POST_RE = re.compile(
 )
 
 
+def qualifies_instagram_product_signal(signal):
+    """Only a direct Instagram product Reel beating its creator's usual performance qualifies."""
+    if not isinstance(signal, dict):
+        return False
+    if signal.get("source") != "Instagram public product Reel via Ignix tracker":
+        return False
+    url = str(signal.get("url") or "").strip()
+    if not INSTAGRAM_POST_RE.fullmatch(url):
+        return False
+    if not str(signal.get("title") or "").strip():
+        return False
+    if not str(signal.get("username") or "").strip():
+        return False
+    if not str(signal.get("trend_tracker_url") or "").startswith("https://ignix.social/trends/products"):
+        return False
+
+    metric = str(signal.get("trend_metric") or "")
+    if not re.search(r"\bviews\b", metric, re.IGNORECASE):
+        return False
+    ratio = signal.get("creator_usual_ratio")
+    if not isinstance(ratio, (int, float)):
+        match = re.search(
+            r"([0-9]+(?:\.[0-9]+)?)\s*[×x]\s*creator\s+usual",
+            metric,
+            re.IGNORECASE,
+        )
+        if not match:
+            return False
+        ratio = float(match.group(1))
+    return float(ratio) > 1.0
+
+
 class _VisibleText(HTMLParser):
     def __init__(self):
         super().__init__()
@@ -107,5 +139,6 @@ def extract_ignix_instagram_product_signals(page_html, observed_at=None):
             "source": "Instagram public product Reel via Ignix tracker",
             "trend_tracker_url": IGNIX_PRODUCTS_URL,
             "trend_metric": metric,
+            "creator_usual_ratio": ratio,
         })
     return out

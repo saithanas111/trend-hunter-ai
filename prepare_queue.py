@@ -16,7 +16,7 @@ def normalize_trend_evidence(raw):
         "source_name": raw.get("source_name") or raw.get("source") or "",
         "source_url": raw.get("source_url") or raw.get("url") or "",
         "observed_at": raw.get("observed_at") or raw.get("timestamp") or "",
-        "metric": raw.get("metric") or raw.get("views") or "",
+        "metric": raw.get("trend_metric") or raw.get("metric") or raw.get("views") or "",
         "tracker_url": raw.get("tracker_url") or raw.get("trend_tracker_url") or "",
     }
 
@@ -73,6 +73,8 @@ def main():
             "public_image_url": product.get("public_image_url", ""),
             "public_video_url": video_url,
             "video_cover_url": product.get("video_cover_url", ""),
+            "video_aspect_ratio": product.get("video_aspect_ratio", ""),
+            "video_quality_checks": product.get("video_quality_checks") or {},
             "video_type": product.get("video_type") or ("2.5d_image_motion" if video_url else "not_generated"),
             "video_reviewed": bool(product.get("video_reviewed", False)),
             "video_status": product.get("video_status") or "not_reviewed",
@@ -97,7 +99,7 @@ def main():
         "trend_evidence", "facebook_caption", "instagram_caption", "caption", "reel_hook",
         "video_script", "hashtags", "affiliate_url", "affiliate_link_verified",
         "affiliate_link_verified_at", "public_image_url", "public_video_url",
-        "video_cover_url", "video_type", "video_reviewed", "video_status", "verified",
+        "video_cover_url", "video_aspect_ratio", "video_quality_checks", "video_type", "video_reviewed", "video_status", "verified",
         "approved", "affiliate_status", "publishing_status", "approval_required"
     ]
     with QUEUE_CSV.open("w", newline="", encoding="utf-8-sig") as handle:
