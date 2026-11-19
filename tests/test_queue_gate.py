@@ -29,7 +29,7 @@ def valid_item(brand="Brand A"):
             "source_name": "Instagram public post",
             "source_url": "https://www.instagram.com/reel/ABC123/",
             "observed_at": now(),
-            "metric": "128K plays; +22K in 24h",
+            "metric": "1.8x creator usual; 128K plays; +22K in 24h",
         },
         "affiliate_url": "https://s.daraz.pk/s.example",
         "affiliate_link_verified": True,
@@ -37,6 +37,15 @@ def valid_item(brand="Brand A"):
         "public_video_url": "https://res.cloudinary.com/example/video/upload/reel.mp4",
         "video_type": "true_3d_cgi",
         "video_reviewed": True,
+        "video_aspect_ratio": "9:16",
+        "video_quality_checks": {
+            "camera_angles": ["front", "side", "top", "macro"],
+            "3d_product_motion": True,
+            "studio_lighting": True,
+            "closeups": True,
+            "transitions": True,
+            "no_static_zoom": True,
+        },
         "instagram_caption": "A closer look. Comment ORDER for the link.",
         "facebook_caption": "See the details. Comment ORDER for the link.",
     }
@@ -59,6 +68,36 @@ class QueueGateTests(unittest.TestCase):
         ready, errors = validate_queue_payload({"items": [item]})
         self.assertEqual(ready, 0)
         self.assertTrue(any("true_3d_cgi" in error for error in errors))
+
+    def test_trend_without_creator_relative_performance_is_rejected(self):
+        item = valid_item()
+        item["trend_evidence"]["metric"] = "128K views; 22K likes"
+        ready, errors = validate_queue_payload({"items": [item]})
+        self.assertEqual(ready, 0)
+        self.assertTrue(any("more than 1.0x creator usual" in error for error in errors))
+
+    def test_creator_performance_at_or_below_usual_is_rejected(self):
+        item = valid_item()
+        item["trend_evidence"]["metric"] = "1.0x creator usual; 128K views"
+        ready, errors = validate_queue_payload({"items": [item]})
+        self.assertEqual(ready, 0)
+        self.assertTrue(any("more than 1.0x creator usual" in error for error in errors))
+
+    def test_video_requires_vertical_multi_angle_quality_manifest(self):
+        item = valid_item()
+        item["video_quality_checks"]["camera_angles"] = ["front", "front", "front"]
+        item["video_quality_checks"]["no_static_zoom"] = False
+        ready, errors = validate_queue_payload({"items": [item]})
+        self.assertEqual(ready, 0)
+        self.assertTrue(any("four distinct angles" in error for error in errors))
+        self.assertTrue(any("no_static_zoom" in error for error in errors))
+
+    def test_non_vertical_video_is_rejected(self):
+        item = valid_item()
+        item["video_aspect_ratio"] = "16:9"
+        ready, errors = validate_queue_payload({"items": [item]})
+        self.assertEqual(ready, 0)
+        self.assertTrue(any("9:16 vertical" in error for error in errors))
 
     def test_duplicate_brands_are_rejected(self):
         ready, errors = validate_queue_payload({"items": [valid_item(), valid_item()]})
