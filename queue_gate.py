@@ -109,7 +109,7 @@ def validate_queue_payload(payload):
                 item_errors.append("trend_evidence.metric is missing")
             else:
                 ratio_match = re.search(
-                    r"([0-9]+(?:\\.[0-9]+)?)\\s*[×x]\\s*creator\\s+usual",
+                    r"([0-9]+(?:\.[0-9]+)?)\s*[×x]\s*creator\s+usual",
                     metric,
                     re.IGNORECASE,
                 )
