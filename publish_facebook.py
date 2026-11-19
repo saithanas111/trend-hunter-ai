@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from urllib.parse import urlparse
 
 from queue_gate import validate_queue_payload
+from publish_limits import can_publish, current_local_day, load_daily_log, record_publish, save_daily_log
 
 GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v23.0")
 EXPECTED_PAGE_ID = "1212885835249403"
@@ -134,6 +135,12 @@ def main():
         else:
             status = {}
 
+        try:
+            daily_log = load_daily_log()
+        except RuntimeError as exc:
+            raise RuntimeError(f"Daily publishing log unavailable: {exc}") from exc
+        today = current_local_day()
+
         published = 0
         failures = 0
         for index, item in enumerate(queue.get("items", [])):
@@ -142,18 +149,25 @@ def main():
             key = item_key(item, index)
             if status.get(key, {}).get("status") == "published":
                 continue
+            allowed, reason = can_publish(daily_log, key, "facebook", item.get("brand"), today=today)
+            if not allowed:
+                print(f"Skipped Facebook item {key}: {reason}")
+                continue
             try:
                 created = publish_video(page_id, token, item)
                 video_id = str(created.get("id") or "").strip()
                 if not video_id:
                     raise RuntimeError(f"Facebook video response missing id: {created}")
-                status[key] = {
+                details = {
                     "status": "published",
                     "video_id": video_id,
                     "page_id": page_id,
                     "page_name": page_info.get("name"),
                     "published_at": datetime.now(timezone.utc).isoformat(),
                 }
+                status[key] = details
+                record_publish(daily_log, key, "facebook", item, details, today=today)
+                save_daily_log(daily_log)
                 published += 1
                 print(f"Published verified Facebook Page video {key}: {video_id}")
             except (urllib.error.URLError, RuntimeError, TimeoutError, ValueError) as exc:
@@ -163,6 +177,7 @@ def main():
 
         with open(STATUS_PATH, "w", encoding="utf-8") as handle:
             json.dump(status, handle, ensure_ascii=False, indent=2)
+        save_daily_log(daily_log)
         print(f"Facebook publishing run complete. Newly published Page videos confirmed: {published}")
         return 1 if failures else 0
     except (urllib.error.URLError, RuntimeError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
