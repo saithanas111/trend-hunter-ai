@@ -17,6 +17,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 from queue_gate import validate_queue_payload
+from publish_limits import can_publish, current_local_day, load_daily_log, record_publish, save_daily_log
 
 GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v23.0")
 TARGET_INSTAGRAM_USERNAME = "official.trending.finds"
@@ -139,6 +140,13 @@ def main():
     else:
         status = {}
 
+    try:
+        daily_log = load_daily_log()
+    except RuntimeError as exc:
+        print(f"PUBLISH BLOCKED: {exc}", file=sys.stderr)
+        return 2
+    today = current_local_day()
+
     base = f"https://graph.facebook.com/{GRAPH_VERSION}/{user_id}"
     published = 0
     for index, item in enumerate(queue.get("items", [])):
@@ -146,6 +154,10 @@ def main():
             continue
         key = item_key(item, index)
         if status.get(key, {}).get("status") == "published":
+            continue
+        allowed, reason = can_publish(daily_log, key, "instagram", item.get("brand"), today=today)
+        if not allowed:
+            print(f"Skipped Instagram item {key}: {reason}")
             continue
 
         caption = str(item["instagram_caption"]).strip()
@@ -169,12 +181,25 @@ def main():
             media_id = result.get("id")
             if not media_id:
                 raise RuntimeError(f"Reel publish response missing media id: {result}")
-            status[key] = {
+            permalink = ""
+            try:
+                permalink_result = request_json(
+                    f"{base}/{media_id}?"
+                    + urllib.parse.urlencode({"fields": "permalink", "access_token": token})
+                )
+                permalink = str(permalink_result.get("permalink") or "")
+            except (urllib.error.URLError, RuntimeError, TimeoutError, ValueError) as permalink_error:
+                print(f"Reel {media_id} is published; permalink lookup unavailable: {permalink_error}")
+            details = {
                 "status": "published",
                 "media_id": media_id,
+                "permalink": permalink,
                 "instagram_username": actual_username,
                 "published_at": datetime.now(timezone.utc).isoformat(),
             }
+            status[key] = details
+            record_publish(daily_log, key, "instagram", item, details, today=today)
+            save_daily_log(daily_log)
             published += 1
             print(f"Published verified Reel {key}: {media_id}")
         except (urllib.error.URLError, RuntimeError, TimeoutError, ValueError) as exc:
@@ -183,6 +208,7 @@ def main():
 
     with open(STATUS_PATH, "w", encoding="utf-8") as handle:
         json.dump(status, handle, ensure_ascii=False, indent=2)
+    save_daily_log(daily_log)
     print(f"Publishing run complete. Newly published Reels confirmed: {published}")
     return 0
 
