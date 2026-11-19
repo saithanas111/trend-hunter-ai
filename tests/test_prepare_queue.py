@@ -8,6 +8,18 @@ import prepare_queue
 
 
 class PrepareQueueFreshnessTests(unittest.TestCase):
+    def test_trend_metric_preserves_creator_relative_ratio(self):
+        normalized = prepare_queue.normalize_trend_evidence({
+            "title": "Product Reel",
+            "source": "Instagram public product Reel via Ignix tracker",
+            "url": "https://www.instagram.com/reel/ABC123/",
+            "timestamp": "2026-11-19T12:00:00+00:00",
+            "trend_metric": "1.7x creator usual; 200K views",
+            "trend_tracker_url": "https://ignix.social/trends/products",
+        })
+        self.assertEqual(normalized["metric"], "1.7x creator usual; 200K views")
+        self.assertEqual(normalized["tracker_url"], "https://ignix.social/trends/products")
+
     def test_old_approval_and_verification_are_not_reused(self):
         listing = "https://www.daraz.pk/products/example-i123456.html"
         with tempfile.TemporaryDirectory() as temp:
@@ -89,6 +101,8 @@ class PrepareQueueFreshnessTests(unittest.TestCase):
             self.assertEqual(item["affiliate_link_verified_at"], "")
             self.assertEqual(item["public_video_url"], "")
             self.assertEqual(item["video_cover_url"], "")
+            self.assertEqual(item["video_aspect_ratio"], "")
+            self.assertEqual(item["video_quality_checks"], {})
             self.assertEqual(item["video_type"], "not_generated")
             self.assertFalse(item["video_reviewed"])
             self.assertEqual(item["video_status"], "not_reviewed")
