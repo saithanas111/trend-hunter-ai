@@ -53,6 +53,15 @@ def validate_target_username(expected_username, actual_username=None):
     return TARGET_INSTAGRAM_USERNAME
 
 
+def item_key(item, index=0):
+    """Use a stable listing identity, never a queue position, to prevent duplicate posts."""
+    for field in ("daraz_listing_url", "affiliate_url", "id"):
+        value = str(item.get(field) or "").strip()
+        if value:
+            return value
+    return str(index)
+
+
 def wait_for_video_container(container_id, token):
     url = (
         f"https://graph.facebook.com/{GRAPH_VERSION}/{container_id}?"
@@ -135,7 +144,7 @@ def main():
     for index, item in enumerate(queue.get("items", [])):
         if item.get("approved") is not True or item.get("verified") is not True:
             continue
-        key = str(item.get("id") or item.get("affiliate_url") or index)
+        key = item_key(item, index)
         if status.get(key, {}).get("status") == "published":
             continue
 
