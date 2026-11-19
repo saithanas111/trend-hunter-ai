@@ -45,7 +45,7 @@ jobs:
         if: always()
         run: |
           files=()
-          for file in publish_status.json facebook_publish_status.json; do
+          for file in publish_status.json facebook_publish_status.json daily_publish_log.json; do
             if [ -f "$file" ]; then files+=("$file"); fi
           done
           if [ "${#files[@]}" -gt 0 ]; then
