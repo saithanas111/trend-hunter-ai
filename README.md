@@ -72,7 +72,7 @@ Before a queue item can publish, its JSON entry must explicitly contain:
 - A valid `affiliate_url`.
 - A publicly accessible HTTPS `public_image_url` meeting Instagram's media requirements.
 
-New queue entries are always created with `verified: false` and `approved: false`. The publishing workflow is manual-dispatch only; it does not publish drafts automatically. Successful and failed attempts are recorded in `publish_status.json`.
+New queue entries are always created with `verified: false` and `approved: false`. The Meta publishing workflow can be manually dispatched or automatically triggered after a successful Trend Hunter AI run; it never publishes drafts or items that fail the queue gate. Successful and failed attempts are recorded in `publish_status.json`.
 
 
 ## Strict trend qualification and Meta publishing
@@ -86,3 +86,6 @@ New queue entries are always created with `verified: false` and `approved: false
 - Facebook Page video publishing requires repository secrets `FACEBOOK_AUTO_PUBLISH_ENABLED=true` and `FACEBOOK_PAGE_ACCESS_TOKEN`. The Page ID is fixed in the workflow and publisher.
 - No 2.5D still-image zoom is accepted as a video. Profile editing and automatic Meta DMs are not configured.
 - Publishing status is keyed by the Daraz listing URL, not the queue position, to avoid suppressing a different product after queue reordering.
+
+
+Publishable video items must also include a reviewed `9:16` vertical MP4/MOV and a quality manifest confirming at least four distinct camera angles, genuine 3D product motion, studio lighting, close-ups, transitions, and no static-image zoom. The trend metric must explicitly show more than `1.0x creator usual`; raw views and likes alone cannot pass the queue gate.
