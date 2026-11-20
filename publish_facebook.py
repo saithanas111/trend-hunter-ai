@@ -114,6 +114,7 @@ def main():
             queue = json.load(handle)
         ready, errors = validate_queue_payload(queue)
         if errors:
+            write_run_status(STATUS_PATH, "facebook", "blocked", "Queue gate rejected one or more items.", extra={"gate_errors": errors, "page_id": page_id})
             for error in errors:
                 print("PUBLISH BLOCKED:", error, file=sys.stderr)
             return 2
