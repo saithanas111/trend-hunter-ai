@@ -1,0 +1,12 @@
+{
+  "__run__": {
+    "platform": "facebook",
+    "status": "skipped",
+    "reason": "FACEBOOK_AUTO_PUBLISH_ENABLED is not true.",
+    "published_count": 0,
+    "checked_at": "2026-11-20T12:09:39.802181+00:00",
+    "details": {
+      "page_id": "1212885835249403"
+    }
+  }
+}

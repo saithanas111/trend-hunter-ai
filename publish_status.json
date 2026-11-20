@@ -1,0 +1,12 @@
+{
+  "__run__": {
+    "platform": "instagram",
+    "status": "skipped",
+    "reason": "AUTO_PUBLISH_ENABLED is not true.",
+    "published_count": 0,
+    "checked_at": "2026-11-20T12:09:39.750511+00:00",
+    "details": {
+      "expected_username": "official.trending.finds"
+    }
+  }
+}
