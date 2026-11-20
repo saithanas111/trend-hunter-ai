@@ -13,6 +13,7 @@ on:
       - "publish_instagram.py"
       - "publish_facebook.py"
       - "publish_limits.py"
+      - "publish_run_status.py"
       - "tests/**"
       - ".github/workflows/publish-instagram.yml"
       - ".github/workflows/trend-hunter.yml"
@@ -34,4 +35,4 @@ jobs:
       - name: Run queue gate unit tests
         run: python -m unittest discover -s tests -v
       - name: Compile Python modules
-        run: python -m compileall -q main.py trend_sources.py prepare_queue.py generate_reel.py validate_queue.py queue_gate.py publish_instagram.py publish_facebook.py publish_limits.py tests
+        run: python -m compileall -q main.py trend_sources.py prepare_queue.py generate_reel.py validate_queue.py queue_gate.py publish_instagram.py publish_facebook.py publish_limits.py publish_run_status.py tests

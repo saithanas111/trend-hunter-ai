@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 
 from queue_gate import validate_queue_payload
 from publish_limits import can_publish, current_local_day, load_daily_log, record_publish, save_daily_log
+from publish_run_status import write_run_status
 
 GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v23.0")
 TARGET_INSTAGRAM_USERNAME = "official.trending.finds"
@@ -81,6 +82,7 @@ def wait_for_video_container(container_id, token):
 
 def main():
     if os.getenv("AUTO_PUBLISH_ENABLED", "").lower() != "true":
+        write_run_status(STATUS_PATH, "instagram", "skipped", "AUTO_PUBLISH_ENABLED is not true.", extra={"expected_username": TARGET_INSTAGRAM_USERNAME})
         print("Publishing disabled: AUTO_PUBLISH_ENABLED is not true.")
         return 0
 
@@ -88,40 +90,56 @@ def main():
     token = os.getenv("META_ACCESS_TOKEN", "").strip()
     expected_username = os.getenv("META_IG_EXPECTED_USERNAME", "").strip().lstrip("@").casefold()
     if not user_id or not token:
-        print("Missing META_IG_USER_ID or META_ACCESS_TOKEN.", file=sys.stderr)
+        reason = "Missing META_IG_USER_ID or META_ACCESS_TOKEN."
+        write_run_status(STATUS_PATH, "instagram", "blocked", reason, extra={"expected_username": TARGET_INSTAGRAM_USERNAME})
+        print(reason, file=sys.stderr)
         return 2
     try:
         validate_target_username(expected_username)
     except RuntimeError as exc:
+        write_run_status(STATUS_PATH, "instagram", "blocked", str(exc), extra={"configured_username": expected_username})
         print(f"PUBLISH BLOCKED: {exc}", file=sys.stderr)
         return 2
     if not os.path.exists(QUEUE_PATH):
-        print(f"Queue not found: {QUEUE_PATH}", file=sys.stderr)
+        reason = f"Queue not found: {QUEUE_PATH}"
+        write_run_status(STATUS_PATH, "instagram", "blocked", reason)
+        print(reason, file=sys.stderr)
         return 2
 
     with open(QUEUE_PATH, encoding="utf-8") as handle:
         queue = json.load(handle)
     ready, errors = validate_queue_payload(queue)
     if errors:
+        write_run_status(STATUS_PATH, "instagram", "blocked", "Queue gate rejected one or more items.", extra={"gate_errors": errors})
         for error in errors:
             print("PUBLISH BLOCKED:", error, file=sys.stderr)
         return 2
     if ready == 0:
-        print("No fully verified, approved, true-3D CGI Reel is ready. Nothing was published.")
+        reason = "No fully verified, approved, true-3D CGI Reel is ready."
+        write_run_status(STATUS_PATH, "instagram", "skipped", reason)
+        print(reason + " Nothing was published.")
         return 0
 
     profile_url = (
         f"https://graph.facebook.com/{GRAPH_VERSION}/{user_id}?"
         + urllib.parse.urlencode({"fields": "id,username", "access_token": token})
     )
-    profile = request_json(profile_url)
+    try:
+        profile = request_json(profile_url)
+    except (urllib.error.URLError, RuntimeError, TimeoutError, ValueError) as exc:
+        write_run_status(STATUS_PATH, "instagram", "blocked", f"Meta profile verification failed: {exc}")
+        print(f"PUBLISH BLOCKED: Meta profile verification failed: {exc}", file=sys.stderr)
+        return 2
     actual_username = str(profile.get("username") or "").strip().lstrip("@").casefold()
     try:
         validate_target_username(expected_username, actual_username)
     except RuntimeError as exc:
+        write_run_status(STATUS_PATH, "instagram", "blocked", str(exc), extra={"live_username": actual_username})
         print(f"PUBLISH BLOCKED: {exc}", file=sys.stderr)
         return 2
     if str(profile.get("id") or "") != user_id:
+        reason = "Meta returned a different Instagram user ID than META_IG_USER_ID."
+        write_run_status(STATUS_PATH, "instagram", "blocked", reason, extra={"live_username": actual_username})
         print(
             "PUBLISH BLOCKED: Meta returned a different Instagram user ID than META_IG_USER_ID.",
             file=sys.stderr,
@@ -143,12 +161,14 @@ def main():
     try:
         daily_log = load_daily_log()
     except RuntimeError as exc:
+        write_run_status(STATUS_PATH, "instagram", "blocked", str(exc), extra={"live_username": actual_username})
         print(f"PUBLISH BLOCKED: {exc}", file=sys.stderr)
         return 2
     today = current_local_day()
 
     base = f"https://graph.facebook.com/{GRAPH_VERSION}/{user_id}"
     published = 0
+    failures = 0
     for index, item in enumerate(queue.get("items", [])):
         if item.get("approved") is not True or item.get("verified") is not True:
             continue
@@ -204,12 +224,16 @@ def main():
             print(f"Published verified Reel {key}: {media_id}")
         except (urllib.error.URLError, RuntimeError, TimeoutError, ValueError) as exc:
             status[key] = {"status": "failed", "error": str(exc)[:500]}
+            failures += 1
             print(f"Failed Reel {key}: {exc}", file=sys.stderr)
 
     with open(STATUS_PATH, "w", encoding="utf-8") as handle:
         json.dump(status, handle, ensure_ascii=False, indent=2)
     save_daily_log(daily_log)
-    print(f"Publishing run complete. Newly published Reels confirmed: {published}")
+    run_state = "partial_failure" if failures else "completed"
+    run_reason = "One or more Reel publish attempts failed." if failures else "Instagram publishing run completed; only Meta-confirmed media IDs are recorded."
+    write_run_status(STATUS_PATH, "instagram", run_state, run_reason, published_count=published, extra={"failed_attempts": failures, "live_username": actual_username})
+    print(f"Publishing run complete. Newly published Reels confirmed: {published}; failed attempts: {failures}")
     return 0
 
 
