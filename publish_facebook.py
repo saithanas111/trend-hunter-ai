@@ -11,6 +11,7 @@ from urllib.parse import urlparse
 
 from queue_gate import validate_queue_payload
 from publish_limits import can_publish, current_local_day, load_daily_log, record_publish, save_daily_log
+from publish_run_status import write_run_status
 
 GRAPH_VERSION = os.getenv("META_GRAPH_VERSION", "v23.0")
 EXPECTED_PAGE_ID = "1212885835249403"
@@ -93,13 +94,16 @@ def publish_video(page_id, token, item):
 
 def main():
     if os.getenv("FACEBOOK_AUTO_PUBLISH_ENABLED", "").strip().lower() != "true":
+        write_run_status(STATUS_PATH, "facebook", "skipped", "FACEBOOK_AUTO_PUBLISH_ENABLED is not true.", extra={"page_id": EXPECTED_PAGE_ID})
         print("Facebook publishing disabled: FACEBOOK_AUTO_PUBLISH_ENABLED is not true.")
         return 0
 
     page_id = os.getenv("FACEBOOK_PAGE_ID", "").strip()
     token = os.getenv("FACEBOOK_PAGE_ACCESS_TOKEN", "").strip()
     if not page_id or not token:
-        print("PUBLISH BLOCKED: Missing FACEBOOK_PAGE_ID or FACEBOOK_PAGE_ACCESS_TOKEN.", file=sys.stderr)
+        reason = "Missing FACEBOOK_PAGE_ID or FACEBOOK_PAGE_ACCESS_TOKEN."
+        write_run_status(STATUS_PATH, "facebook", "blocked", reason, extra={"page_id": page_id or EXPECTED_PAGE_ID})
+        print("PUBLISH BLOCKED:", reason, file=sys.stderr)
         return 2
     try:
         if page_id != EXPECTED_PAGE_ID:
@@ -114,7 +118,9 @@ def main():
                 print("PUBLISH BLOCKED:", error, file=sys.stderr)
             return 2
         if ready == 0:
-            print("No fully verified, approved, true-3D CGI product video is ready for Facebook. Nothing was published.")
+            reason = "No fully verified, approved, true-3D CGI product video is ready for Facebook."
+            write_run_status(STATUS_PATH, "facebook", "skipped", reason, extra={"page_id": page_id})
+            print(reason + " Nothing was published.")
             return 0
 
         page_url = (
@@ -178,9 +184,13 @@ def main():
         with open(STATUS_PATH, "w", encoding="utf-8") as handle:
             json.dump(status, handle, ensure_ascii=False, indent=2)
         save_daily_log(daily_log)
-        print(f"Facebook publishing run complete. Newly published Page videos confirmed: {published}")
+        run_state = "partial_failure" if failures else "completed"
+        run_reason = "One or more Facebook Page video publish attempts failed." if failures else "Facebook publishing run completed; only Meta-confirmed video IDs are recorded."
+        write_run_status(STATUS_PATH, "facebook", run_state, run_reason, published_count=published, extra={"failed_attempts": failures, "page_id": page_id, "page_name": page_info.get("name")})
+        print(f"Facebook publishing run complete. Newly published Page videos confirmed: {published}; failed attempts: {failures}")
         return 1 if failures else 0
     except (urllib.error.URLError, RuntimeError, TimeoutError, ValueError, json.JSONDecodeError) as exc:
+        write_run_status(STATUS_PATH, "facebook", "blocked", str(exc), extra={"page_id": page_id or EXPECTED_PAGE_ID})
         print(f"PUBLISH BLOCKED: {exc}", file=sys.stderr)
         return 2
 
