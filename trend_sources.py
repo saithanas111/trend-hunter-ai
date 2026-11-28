@@ -4,7 +4,7 @@ from html import unescape
 from html.parser import HTMLParser
 import re
 
-IGNIX_PRODUCTS_URL = "https://ignix.social/trends/products"
+IGNIX_PRODUCTS_URL = "https://ignix.social/trends/instagram/products"
 INSTAGRAM_POST_RE = re.compile(
     r"https?://(?:www\.)?instagram\.com/(?:p|reel|tv)/[A-Za-z0-9_-]+/?",
     re.IGNORECASE,
@@ -24,7 +24,10 @@ def qualifies_instagram_product_signal(signal):
         return False
     if not str(signal.get("username") or "").strip():
         return False
-    if not str(signal.get("trend_tracker_url") or "").startswith("https://ignix.social/trends/products"):
+    if not str(signal.get("trend_tracker_url") or "").startswith((
+        "https://ignix.social/trends/instagram/products",
+        "https://ignix.social/trends/products",  # legacy historical tracker route
+    )):
         return False
 
     metric = str(signal.get("trend_metric") or "")
