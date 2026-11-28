@@ -80,7 +80,7 @@ def _relative_performance(text, username):
 
 
 def extract_ignix_instagram_product_signals(page_html, observed_at=None):
-    """Accept only direct Instagram posts with a product list, views and >1x usual."""
+    """Accept direct Instagram posts with a product list or explicit product caption, views and >1x usual."""
     raw = unescape(str(page_html or "")).replace("\\/", "/").replace("\\u002F", "/")
     visible = _visible_text(raw)
     start = re.search(r"Rising on Instagram", visible, re.IGNORECASE)
@@ -108,7 +108,7 @@ def extract_ignix_instagram_product_signals(page_html, observed_at=None):
             context_text,
             re.IGNORECASE,
         )
-        if not products_match or not views_match or not creator_match:
+        if not views_match or not creator_match:
             continue
 
         username = creator_match.group(1)
@@ -123,7 +123,30 @@ def extract_ignix_instagram_product_signals(page_html, observed_at=None):
             continue
         seen.add(url)
 
-        product_list = re.sub(r"\s+", " ", products_match.group(1)).strip(" .;")
+        if products_match:
+            product_list = re.sub(r"\s+", " ", products_match.group(1)).strip(" .;")
+        else:
+            # Current weekly cards may describe the product in the visible Reel caption
+            # rather than a separate "Products:" list. Require a concrete product noun.
+            creator_text = (
+                r"@" + re.escape(creator_match.group(1))
+                + r"\s*[·•]\s*" + re.escape(creator_match.group(2))
+                + r"\s+followers"
+            )
+            creator_position = re.search(creator_text, context_text, re.IGNORECASE)
+            if not creator_position:
+                continue
+            caption = context_text[views_match.end():creator_position.start()]
+            caption = re.sub(r"^\s+\d{1,2}:\d{2}\s*", " ", caption)
+            caption = caption.split("#", 1)[0]
+            caption = re.sub(r"\s+", " ", caption).strip(" .;")
+            if not re.search(
+                r"\b(?:mat|toaster|pen|nails|train|iron|lock|lights|tiles|gadget|organizer|organiser|blender|camera|charger|cable|earbuds|headphones|power bank|lamp|vacuum)\b",
+                caption,
+                re.IGNORECASE,
+            ):
+                continue
+            product_list = caption
         views = re.sub(r"\s+", "", views_match.group(1)).upper()
         followers = re.sub(r"\s+", "", creator_match.group(2)).upper()
         metric = (
