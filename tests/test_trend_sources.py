@@ -32,6 +32,23 @@ class IgnixInstagramProductSignalTests(unittest.TestCase):
         self.assertTrue(qualifies_instagram_product_signal(rows[0]))
         self.assertIn("Instagram", rows[0]["source"])
 
+    def test_accepts_explicit_product_caption_without_products_label(self):
+        html = """
+        <h2>Rising on Instagram</h2>
+        <div>13.8× usual 7.3M views 0:15
+        Comment SHOP and I will send the link. The waterproof silicone mat features raised edges to contain spills.
+        #HomeEssentials
+        <a href="https://www.instagram.com/reel/UNDER123/">Watch the Reel</a>
+        @creator · 16.1K followers</div>
+        <h2>What counts as a trend here</h2>
+        """
+        rows = extract_ignix_instagram_product_signals(html)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["url"], "https://www.instagram.com/reel/UNDER123")
+        self.assertIn("silicone mat", rows[0]["title"].lower())
+        self.assertIn("13.8x creator usual", rows[0]["trend_metric"])
+        self.assertTrue(qualifies_instagram_product_signal(rows[0]))
+
     def test_creator_summary_ratio_can_be_matched_to_card(self):
         html = """
         <div>Furthest above usual @creator 8.4× usual</div>
