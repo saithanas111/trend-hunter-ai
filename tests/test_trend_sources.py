@@ -1,12 +1,16 @@
 import unittest
 
 from trend_sources import (
+    IGNIX_PRODUCTS_URL,
     extract_ignix_instagram_product_signals,
     qualifies_instagram_product_signal,
 )
 
 
 class IgnixInstagramProductSignalTests(unittest.TestCase):
+    def test_tracker_uses_current_instagram_products_route(self):
+        self.assertEqual(IGNIX_PRODUCTS_URL, "https://ignix.social/trends/instagram/products")
+
     def test_extracts_direct_reel_only_when_above_creator_usual(self):
         html = """
         <h2>Rising on Instagram</h2>
@@ -109,7 +113,7 @@ class QualifiedSignalGateTests(unittest.TestCase):
                 "url": "https://www.instagram.com/reel/ABC123/",
                 "title": "Product Reel",
                 "username": "creator",
-                "trend_tracker_url": "https://ignix.social/trends/products",
+                "trend_tracker_url": "https://ignix.social/trends/instagram/products",
                 "trend_metric": f"{ratio}x creator usual; 100K views",
                 "creator_usual_ratio": ratio,
             }))
@@ -120,7 +124,7 @@ class QualifiedSignalGateTests(unittest.TestCase):
             "url": "https://www.instagram.com/p/ABC123/",
             "title": "Instagram product Reel featuring: branded shampoo",
             "username": "creator",
-            "trend_tracker_url": "https://ignix.social/trends/products",
+            "trend_tracker_url": "https://ignix.social/trends/instagram/products",
             "trend_metric": "1.2x creator usual; 100K views",
             "creator_usual_ratio": 1.2,
         }))
@@ -131,7 +135,7 @@ class QualifiedSignalGateTests(unittest.TestCase):
             "url": "https://www.facebook.com/reel/ABC123/",
             "title": "Product Reel",
             "username": "creator",
-            "trend_tracker_url": "https://ignix.social/trends/products",
+            "trend_tracker_url": "https://ignix.social/trends/instagram/products",
             "trend_metric": "2x creator usual; 100K views",
             "creator_usual_ratio": 2.0,
         }))
